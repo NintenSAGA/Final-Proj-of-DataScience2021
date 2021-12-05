@@ -102,5 +102,7 @@ def clear():
             print('都没文件了哥哥')
             return
         for file_name in os.listdir(folder):
+            if file_name.endswith('bieshan'):
+                continue
             print(file_name + ' is deleted')
             os.remove(folder + file_name)
