@@ -10,6 +10,16 @@
 
 ## 注意事项
 
+*2021-12-5 Update 2*
+- 所有需要的库都放在了 requirement.txt，开始工作前请做如下操作
+> 1.在项目管理中建立新的Virtualenv environment，位置任意，版本用Python3.10
+ 
+> 2.在pycharm下面的命令行中输入 `pip install -r requirements.txt`
+
+> 3.每次push前先 `pip freeze > requirement.txt`
+
+> 4.一定不要把自己的venv push上来！！！
+
 *2021-12-5 Update 1*
 
 - 开始工作前，请确认编译环境为 `/env/bin/python`中的venv Python 3.10
