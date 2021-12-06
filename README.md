@@ -9,6 +9,9 @@
 
 
 ## 注意事项
+*2021-12-6 Update 3*
+- Windows 运行脚本前修改权限 `set-executionpolicy remotesigned`
+- Windows 启用venv: `./venv/Scripts/activate`(运行前确认是在venv下的terminal)
 
 *2021-12-5 Update 2*
 - 所有需要的库都放在了 requirement.txt，开始工作前请做如下操作
