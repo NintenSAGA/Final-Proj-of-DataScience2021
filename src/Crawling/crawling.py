@@ -5,6 +5,9 @@ from sys import stderr
 
 from selenium.webdriver import Edge
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import ElementClickInterceptedException
 
 from src import Crawling
 
@@ -114,29 +117,44 @@ def __gov_crawling(n: int, edge: Edge):
 def __pkulaw_crawling(n: int, edge: Edge):
     """
     利用 Selenium 扒取北大法宝的裁判文书
+
+    需使用南大ip
     :param n: 要扒取的文件数量
     """
     target_site = pkulaw_url
-    login_url = 'https://login.pkulaw.com/?ReturnUrl=https%3a%2f%2fwww.pkulaw.com%2fcase%2f'
     global counter
 
-    # edge.get(login_url)
-    # input()
-    # edge.find_element(By.XPATH, '//*[@id="loginByIp"]').click()  # IP 登录
-    # time.sleep(0.5)
-    # print('IP登录成功')
-
     edge.get(target_site)
-    input()
 
-    # pickle.dump(edge.get_cookies(), file=open('pickle.pkl', 'rw'))
-    edge.find_element(By.XPATH, '//*[@id="CaseGradeport_39"]').click()  # 普通案例
-    input()
-    edge.find_element(By.XPATH, '//*[@id="CaseClassport_19_a"]').click()  # unfold
-    input()
-    edge.find_element(By.XPATH, '//*[@id="CaseClassport_19"]').click()  # 判决书
-    input()
-    edge.find_element(By.XPATH, '//*[@id="DocumentAttrport_1"]').click()  # 刑事一审
+    print('正在筛选条件')
+
+    WebDriverWait(edge, 10).until(expected_conditions.presence_of_element_located((By.XPATH, '//*[@id="leftContent"]/div/div[3]/div/ul/li[9]')))
+    edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[3]/div/ul/li[9]').click()  # 普通案例
+
+    time.sleep(2)
+    while True:
+        try:
+            edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[4]/div/ul/li[2]/span[1]').click()  # unfold 动态地址
+            break
+        except ElementClickInterceptedException:
+            time.sleep(1)
+            continue
+    WebDriverWait(edge, 10).until(expected_conditions.presence_of_element_located((By.XPATH, '//*[@id="leftContent"]/div/div[4]/div/ul/li[2]/ul/li[1]')))
+    edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[4]/div/ul/li[2]/ul/li[1]/a').click()  # 刑事一审
+    print('刑事一审')
+
+    time.sleep(2)
+    while True:
+        try:
+            edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[9]/h4/a[1]').click()  # unfold
+            break
+        except ElementClickInterceptedException:
+            time.sleep(1)
+            continue
+    WebDriverWait(edge, 10).until(expected_conditions.presence_of_element_located((By.XPATH, '//*[@id="leftContent"]/div/div[9]/div/ul/li[1]')))
+    edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[9]/div/ul/li[1]').click()  # 裁决书
+    print('判决书')
+
     input()
 
 

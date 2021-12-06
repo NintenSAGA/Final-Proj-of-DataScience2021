@@ -2,21 +2,24 @@
 
 成员：谭子悦 李佳骏 邱兴驰
 
-方向：司法大数据自动化标注与分
+方向：司法大数据自动化标注与分析
 
 ## 项目总览
 
+## Features
 
+自动化标注系统既可以标注出通用属性，也可以针对部分类别案件标注出特别属性，如：危险驾驶罪，可标注出酒精含量和罚款金额
 
 ## 注意事项
 *2021-12-6 Update 3*
+
 - Windows 运行脚本前修改权限 `set-executionpolicy remotesigned`
 - Windows 启用venv: `./venv/Scripts/activate`(运行前确认是在venv下的terminal)
 
 *2021-12-5 Update 2*
 - 所有需要的库都放在了 requirement.txt，开始工作前请做如下操作
 > 1.在项目管理中建立新的Virtualenv environment，位置任意，版本用Python3.10
- 
+
 > 2.在pycharm下面的命令行中输入 `pip install -r requirement.txt`
 
 > 3.每次push前先 `pip freeze > requirement.txt`
