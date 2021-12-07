@@ -1,22 +1,18 @@
-import pickle
-import platform
+import os
 import time
+import platform
 from sys import stderr
 
-from selenium.webdriver import Edge
+from selenium.webdriver import Edge, ActionChains
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import ElementClickInterceptedException
+from selenium.common.exceptions import ElementClickInterceptedException, WebDriverException, NoSuchElementException, ElementNotInteractableException
+from selenium.webdriver import EdgeOptions
 
 from src import Crawling
+from src.Crawling.text_extract import gov_retrieve
+from src.Crawling.text_extract import pkulaw_retrive
+from src.Crawling.common import result_folder
 
-import os
-
-import requests
-from bs4 import BeautifulSoup
-
-folder = Crawling.__path__[0] + '/results/'
 gov_url = 'http://gongbao.court.gov.cn/QueryArticle.html?title=&content=&document_number=&serial_no=cpwsxd&year=-1&number=-1'
 pkulaw_url = 'https://www.pkulaw.com/case/'
 counter = 0
@@ -42,37 +38,6 @@ def gimme_path() -> str:
     return path
 
 
-def retrieve(url: str):
-    """
-    将对应文章的文档转换为 txt 文件，存入 '/result'
-
-    :param url: 文档链接
-    :return: null
-    """
-
-    global counter
-    print()
-    res = ['']
-    bs = BeautifulSoup(requests.get(url).content, features='html.parser')
-
-    c = bs.find_all('div', {'class': 'content_box'})[0]
-
-    for cp in c.find_all('p')[1:]:
-        prop = cp.get('style')
-
-        if prop is not None and prop.find('center') != -1:
-            res[-1] += cp.text.strip()
-        else:
-            res.append(cp.text)
-
-    with open(folder + str(counter) + '.' + res[0] + '.txt', 'w') as f:
-        f.write(os.linesep.join(res).replace(chr(0xa0), ' '))
-
-    print('[' + str(counter) + '] Source: ' + url)
-    print('Article "' + res[0] + '" has been retrieved.')
-    counter += 1
-
-
 def crawl(n: int = 100, src: int = 1):
     """
     利用 Selenium 扒取裁判文书
@@ -86,7 +51,9 @@ def crawl(n: int = 100, src: int = 1):
     target_site: str
     global counter
 
-    with Edge(executable_path=gimme_path()) as edge:
+    option = EdgeOptions()
+
+    with Edge(executable_path=gimme_path(), options=option) as edge:
         print('Edge Webdriver 已正常启动')
         if src == 0:
             __gov_crawling(n, edge)
@@ -109,9 +76,11 @@ def __gov_crawling(n: int, edge: Edge):
         for i in range(1, min(len(entries), n - counter + 1)):
             entry = entries[i]
             target_site = entry.find_element(By.XPATH, './/span/a').get_attribute('href')
-            retrieve(target_site)
-        edge.find_element(By.XPATH, '//*[@id="pager"]/a[4]').click()
-        time.sleep(2)
+            gov_retrieve(target_site, counter)
+            counter += 1
+        if not counter >= n:
+            edge.find_element(By.XPATH, '//*[@id="pager"]/a[4]').click()
+            time.sleep(2)
 
 
 def __pkulaw_crawling(n: int, edge: Edge):
@@ -121,42 +90,115 @@ def __pkulaw_crawling(n: int, edge: Edge):
     需使用南大ip
     :param n: 要扒取的文件数量
     """
-    target_site = pkulaw_url
     global counter
 
-    edge.get(target_site)
+    if input('是否要重新获取链接？(y/n): ').startswith('y'):
+        __pkulaw_html_crawling(n, edge)
+        print('log: 休息十秒')
+        time.sleep(10)
+    else:
+        edge.quit()
 
-    print('正在筛选条件')
+    count = 0
 
-    WebDriverWait(edge, 10).until(expected_conditions.presence_of_element_located((By.XPATH, '//*[@id="leftContent"]/div/div[3]/div/ul/li[9]')))
-    edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[3]/div/ul/li[9]').click()  # 普通案例
+    url_list = result_folder + '~url_list.txt'
+    with open(url_list, 'r') as f:
+        for line in f.read().split('\n'):
+            if line.startswith('https'):
+                print('log: 开始扒取文件' + str(count))
+                pkulaw_retrive(line, count)
+                count += 1
+                time.sleep(4)
+
+
+def __pkulaw_html_crawling(n: int, edge: Edge):
+    edge.get("https://www.pkulaw.com/case/")
+
+    try:
+        login_status = edge.find_element(By.XPATH, '/html/body/div[3]/div/div[3]/a[1]')
+        if not login_status.text == '南京大学':
+            raise WebDriverException
+    except WebDriverException:
+        print('登录情况异常，请使用南大网登录或手动登录')
+        input('解决后输入任意字符：')
+
+    print('log: 正在筛选条件')
+
+    time.sleep(2)
+    # 选择普通案例
+    edge.find_element(By.XPATH, "//li[9]/a/span").click()
+    print('log: 已选择普通案例')
 
     time.sleep(2)
     while True:
         try:
-            edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[4]/div/ul/li[2]/span[1]').click()  # unfold 动态地址
-            break
-        except ElementClickInterceptedException:
-            time.sleep(1)
+            if edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[9]/h4/a[1]/i').get_attribute(
+                    'class').endswith('c-plus'):
+                edge.find_element(By.XPATH, "//div[9]/h4/a/i").click()
+            else:
+                edge.find_element(By.XPATH, "//div[9]/div/ul/li/a/span").click()
+                time.sleep(2)
+                break
+        except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
             continue
-    WebDriverWait(edge, 10).until(expected_conditions.presence_of_element_located((By.XPATH, '//*[@id="leftContent"]/div/div[4]/div/ul/li[2]/ul/li[1]')))
-    edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[4]/div/ul/li[2]/ul/li[1]/a').click()  # 刑事一审
-    print('刑事一审')
+    print('log: 已选择判决书')
 
     time.sleep(2)
     while True:
         try:
-            edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[9]/h4/a[1]').click()  # unfold
-            break
-        except ElementClickInterceptedException:
-            time.sleep(1)
+            if edge.find_element(By.XPATH, '//*[@id="CaseClassport_9_switch"]').get_attribute('class').endswith(
+                    'close'):
+                edge.find_element(By.XPATH, "//div[4]/div/ul/li[2]/span").click()
+            else:
+                edge.find_element(By.XPATH, "//li[2]/ul/li/a/span").click()
+                time.sleep(2)
+                if not edge.find_element(By.XPATH,
+                                         '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]').text.startswith('案'):
+                    continue
+                break
+        except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
             continue
-    WebDriverWait(edge, 10).until(expected_conditions.presence_of_element_located((By.XPATH, '//*[@id="leftContent"]/div/div[9]/div/ul/li[1]')))
-    edge.find_element(By.XPATH, '//*[@id="leftContent"]/div/div[9]/div/ul/li[1]').click()  # 裁决书
-    print('判决书')
+    print('log: 已选择刑事一审')
 
-    input()
+    time.sleep(2)
+    while True:
+        try:
+            # 悬浮每页显示条目
+            element = edge.find_element(By.CSS_SELECTOR, ".articleSelect:nth-child(1) h4")
+            actions = ActionChains(edge)
+            actions.move_to_element(element).perform()
+            # 点击每页100条
+            edge.find_element(By.XPATH, "//div[3]/div/div[2]/dl/dd[4]").click()
+        except ElementNotInteractableException:
+            continue
+        break
+    print('log: 已选择每页100条')
 
+    time.sleep(2)
+
+    # 读取每页所有条目
+    count = 0
+
+    url_list = result_folder + '~url_list.txt'
+    if os.path.exists(url_list):
+        os.remove(url_list)
+
+    while count < n:
+        entries = edge.find_elements(By.XPATH, '//*[@id="rightContent"]/div[3]/div/ul/li')
+        for e in entries:
+            href = e.find_element(By.XPATH, './/div/div/h4/a').get_attribute('href')
+            print(href, file=open(url_list, 'a+'))
+            print('HTML of entry[' + str(count) + '] retrieved')
+            count += 1
+            if count == n:
+                break
+        if not count == n:
+            edge.find_element(By.XPATH, '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li[8]/a').click()  # 翻页
+            time.sleep(2)
+
+    print('log: 所有条目的链接扒取完毕')
+
+    edge.quit()  # 退出 edge，防止并发
 
 def clear():
     """
@@ -165,11 +207,11 @@ def clear():
     :return:
     """
     if input('确定要删除所有缓存文件吗？(y/n): ').startswith('y'):
-        if len(os.listdir(folder)) <= 1:
+        if len(os.listdir(result_folder)) <= 1:
             print('都没文件了哥哥')
             return
-        for file_name in os.listdir(folder):
-            if file_name.endswith('bieshan'):
+        for file_name in os.listdir(result_folder):
+            if file_name.startswith('~'):
                 continue
             print(file_name + ' is deleted')
-            os.remove(folder + file_name)
+            os.remove(result_folder + file_name)
