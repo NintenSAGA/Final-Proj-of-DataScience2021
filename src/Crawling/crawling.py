@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import platform
 from sys import stderr
@@ -9,9 +10,13 @@ from selenium.common.exceptions import ElementClickInterceptedException, WebDriv
 from selenium.webdriver import EdgeOptions
 
 from src import Crawling
+from src.Crawling import text_extract
 from src.Crawling.text_extract import gov_retrieve
-from src.Crawling.text_extract import pkulaw_retrive
+from src.Crawling.text_extract import pkulaw_retrieve
+from src.Crawling.text_extract import cookies_import
+from src.Crawling.text_extract import pkulaw_retrieve_html_doc
 from src.Crawling.common import result_folder
+from src.Crawling.text_extract import html_path
 
 gov_url = 'http://gongbao.court.gov.cn/QueryArticle.html?title=&content=&document_number=&serial_no=cpwsxd&year=-1&number=-1'
 pkulaw_url = 'https://www.pkulaw.com/case/'
@@ -38,10 +43,11 @@ def gimme_path() -> str:
     return path
 
 
-def crawl(n: int = 100, src: int = 1):
+def crawl(n: int = 100, src: int = 1, from_page: int = 0):
     """
     利用 Selenium 扒取裁判文书
 
+    :param from_page: 从第几份开始
     :param n: 要扒取的文件数量
     :param src: 文献来源，0 - 中华人民共和国最高人民法院公报, 1 - 北大法宝
     """
@@ -55,10 +61,11 @@ def crawl(n: int = 100, src: int = 1):
 
     with Edge(executable_path=gimme_path(), options=option) as edge:
         print('Edge Webdriver 已正常启动')
+        edge.set_window_position(-edge.get_window_size()['width'], 0)
         if src == 0:
             __gov_crawling(n, edge)
         else:
-            __pkulaw_crawling(n, edge)
+            __pkulaw_crawling(n, edge, from_page)
 
 
 def __gov_crawling(n: int, edge: Edge):
@@ -83,7 +90,7 @@ def __gov_crawling(n: int, edge: Edge):
             time.sleep(2)
 
 
-def __pkulaw_crawling(n: int, edge: Edge):
+def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
     """
     利用 Selenium 扒取北大法宝的裁判文书
 
@@ -91,28 +98,53 @@ def __pkulaw_crawling(n: int, edge: Edge):
     :param n: 要扒取的文件数量
     """
     global counter
+    url_list = result_folder + '~url_list.txt'
 
-    if input('是否要重新获取链接？(y/n): ').startswith('y'):
-        __pkulaw_html_crawling(n, edge)
+    if not os.path.exists(url_list) or input('是否要重新获取链接？(y/n): ').startswith('y'):
+        __pkulaw_html_fetch(n, edge, from_page)
+        cookies_import(edge.get_cookies())  # 将selenium的cookies转换给mechanicalsoup
+        print('log: 已完成cookie转换')
         print('log: 休息十秒')
-        time.sleep(10)
+        for i in range(0, 10):
+            sys.stdout.write('\r{}'.format(10-i))
+            sys.stdout.flush()
+            time.sleep(1)
+        sys.stdout.write('\r0' + os.linesep)
+        sys.stdout.flush()
+
+    edge.quit()
+    skip_html_retrieve = False
+
+    if not os.path.exists(text_extract.html_folder):
+        os.mkdir(text_extract.html_folder)
     else:
-        edge.quit()
+        if len(os.listdir(text_extract.html_folder)) >= n:
+            print('log: 已存在html文档缓存，正在核验完整性......')
+            for i in range(0, n):
+                if not os.path.exists(html_path.format(i)):
+                    print('alert: 第{}项缺失！'.format(i))
+            skip_html_retrieve = input('是否要跳过html页面获取，直接载入已有文档？(y/n): ').startswith('y')
 
     count = 0
-
-    url_list = result_folder + '~url_list.txt'
     with open(url_list, 'r') as f:
         for line in f.read().split('\n'):
             if line.startswith('https'):
-                print('log: 开始扒取文件' + str(count))
-                pkulaw_retrive(line, count)
+                if count < from_page:
+                    count += 1
+                    continue
+                print('[{}]============================'.format(count))
+                if not skip_html_retrieve:
+                    pkulaw_retrieve_html_doc(line, count)
+                try:
+                    pkulaw_retrieve(html_path.format(count), count)
+                except Exception:
+                    print('处理失败！\n')
                 count += 1
-                time.sleep(4)
 
 
-def __pkulaw_html_crawling(n: int, edge: Edge):
+def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
     edge.get("https://www.pkulaw.com/case/")
+    n += from_page
 
     try:
         login_status = edge.find_element(By.XPATH, '/html/body/div[3]/div/div[3]/a[1]')
@@ -143,6 +175,7 @@ def __pkulaw_html_crawling(n: int, edge: Edge):
             continue
     print('log: 已选择判决书')
 
+    edge.set_window_position(0, 0)
     time.sleep(2)
     while True:
         try:
@@ -160,10 +193,14 @@ def __pkulaw_html_crawling(n: int, edge: Edge):
             continue
     print('log: 已选择刑事一审')
 
+    edge.set_window_position(-edge.get_window_size()['width'], 0)
+
     time.sleep(2)
-    while True:
+    manual = True
+    for i in range(0, 50):
         try:
             # 悬浮每页显示条目
+            print('log: 正在尝试选择每页100条......')
             element = edge.find_element(By.CSS_SELECTOR, ".articleSelect:nth-child(1) h4")
             actions = ActionChains(edge)
             actions.move_to_element(element).perform()
@@ -171,7 +208,14 @@ def __pkulaw_html_crawling(n: int, edge: Edge):
             edge.find_element(By.XPATH, "//div[3]/div/div[2]/dl/dd[4]").click()
         except ElementNotInteractableException:
             continue
+        manual = False
         break
+    if manual:
+        print('alert: 无法选中，请尝试手动开启每页100条')
+        time.sleep(2)
+        edge.set_window_position(0, 0)
+        input('完成手动操作后输入任意键：')
+        edge.set_window_position(-edge.get_window_size()['width'], 0)
     print('log: 已选择每页100条')
 
     time.sleep(2)
@@ -193,12 +237,18 @@ def __pkulaw_html_crawling(n: int, edge: Edge):
             if count == n:
                 break
         if not count == n:
-            edge.find_element(By.XPATH, '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li[8]/a').click()  # 翻页
+            while True:
+                try:
+                    edge.find_element(By.XPATH, '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li[8]/a').click()  # 翻页
+                except WebDriverException:
+                    edge.set_window_position(0, 0)
+                    time.sleep(0.5)
+                    continue
+                break
             time.sleep(2)
 
     print('log: 所有条目的链接扒取完毕')
 
-    edge.quit()  # 退出 edge，防止并发
 
 def clear():
     """
