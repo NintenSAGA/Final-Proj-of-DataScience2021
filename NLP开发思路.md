@@ -11,7 +11,12 @@
 - NLP具体实现
   - 工具：HanLP、jieba分词
     - jiebaVersion
-      - 实现算法：TextRank (http://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf)
+      - 实现算法：
+        - TextRank (http://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf)
+        - 算法 
+          - 基于前缀词典实现高效的词图扫描，生成句子中汉字所有可能成词情况所构成的有向无环图 (DAG)
+          - 采用了动态规划查找最大概率路径, 找出基于词频的最大切分组合 
+          - 对于未登录词，采用了基于汉字成词能力的 HMM 模型，使用了 Viterbi 算法
       - 基本思想：
         > 1.将待抽取关键词的文本进行分词 
       
@@ -22,8 +27,10 @@
         >1.文本过滤无效文本，如标点符号等噪音文本。
       
         >2.将文本按词性、词频划分，并分类初步生成词典
+          
+        >3.根据文本格式，直接提取案由，及判决结果
       
-        >3.进行犯罪基本信息拆分，并生成json文件
+        >4.进行犯罪基本信息拆分，并生成json文件
 
 ```angular2html
 明天想到再继续写
