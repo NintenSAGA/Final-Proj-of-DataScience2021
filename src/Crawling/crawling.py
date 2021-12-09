@@ -12,9 +12,9 @@ from selenium.webdriver import EdgeOptions
 from src import Crawling
 from src.Crawling import text_extract
 from src.Crawling.text_extract import gov_retrieve
-from src.Crawling.text_extract import pkulaw_retrieve
+from src.Crawling.text_extract import pkulaw_text_retrieve
 from src.Crawling.text_extract import cookies_import
-from src.Crawling.text_extract import pkulaw_retrieve_html_doc
+from src.Crawling.text_extract import pkulaw_html_file_retrieve
 from src.Crawling.common import result_folder
 from src.Crawling.text_extract import html_path
 
@@ -101,7 +101,7 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
     url_list = result_folder + '~url_list.txt'
 
     if not os.path.exists(url_list) or input('是否要重新获取链接？(y/n): ').startswith('y'):
-        __pkulaw_html_fetch(n, edge, from_page)
+        __pkulaw_url_fetch(n, edge, from_page)
         cookies_import(edge.get_cookies())  # 将selenium的cookies转换给mechanicalsoup
         print('Log: 已完成cookie转换')
         print('Log: 休息十秒')
@@ -134,15 +134,15 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
                     continue
                 print('[{}]============================'.format(count))
                 if not skip_html_retrieve:
-                    pkulaw_retrieve_html_doc(line, count)
+                    pkulaw_html_file_retrieve(line, count)
                 try:
-                    pkulaw_retrieve(html_path.format(count), count)
+                    pkulaw_text_retrieve(html_path.format(count), count)
                 except Exception:
                     print('处理失败！\n')
                 count += 1
 
 
-def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
+def __pkulaw_url_fetch(n: int, edge: Edge, from_page: int = 0):
     edge.get("https://www.pkulaw.com/case/")
     n += from_page
 
