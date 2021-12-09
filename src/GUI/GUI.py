@@ -1,6 +1,9 @@
+import tkinter.ttk
 from tkinter import *
 # from tkinter import messagebox
 from tkinter.filedialog import *
+from tkinter.scrolledtext import *
+import another_paper
 
 
 class Application(Frame):
@@ -37,22 +40,41 @@ class Application(Frame):
         root.bind("<Control-s>", lambda event: self.save_file())
         root.bind("<Control-q>", lambda event: root.quit())
         # 文本框设置
-        self.text_pad = Text(root, width=50, height=30)
+        self.text_pad = ScrolledText(root, width=50, height=30)
         self.text_pad.place(x=0, y=0)
         # 右键跟随菜单设置
         self.context_menu = Menu(root)
         self.context_menu.add_command(label="别点了，没用的", command=self.test)
         root.bind("<Button-3>", self.create_context_menu)
         # 实现多选，还没写完
-        self.CheckVar1 = BooleanVar()
-        self.CheckVar2 = BooleanVar()
-        self.CheckVar1.set(True)  # 预设为勾选
-        self.C1 = Checkbutton(self.master, text="RUN", variable=self.CheckVar1, height=2,
-                              width=8, anchor='w')
-        self.C2 = Checkbutton(self.master, text="GOOGLE", variable=self.CheckVar2, height=2,
-                              width=8, anchor='w')
-        self.C1.place(x=0, y=400)
-        self.C2.place(x=0, y=450)
+        self.check_var1 = BooleanVar()
+        self.check_var2 = BooleanVar()
+        self.check_var1.set(True)  # 预设为勾选
+        c1 = Checkbutton(self.master, text="RUN", variable=self.check_var1, height=2, width=8, anchor='w')
+        c2 = Checkbutton(self.master, text="GOOGLE", variable=self.check_var2, height=2, width=8, anchor='w')
+        c1.place(x=0, y=400)
+        c2.place(x=0, y=450)
+
+        tab_control = tkinter.ttk.Notebook(root)
+        first_tab = tkinter.ttk.Frame(tab_control)
+        tab_control.add(first_tab, text='Tab 1')
+        second_tab = tkinter.ttk.Frame(tab_control)
+        tab_control.add(second_tab, text='Tab 2')
+        tab_control.place(x=500, y=0)
+        mighty = tkinter.ttk.Labelframe(first_tab, text='Mighty')
+        mighty.grid(column=0, row=0, padx=8, pady=4)
+        self.check_var3 = BooleanVar()
+        self.check_var4 = BooleanVar()
+        self.check_var3.set(True)  # 预设为勾选
+        check_button1 = tkinter.ttk.Checkbutton(mighty, text="RUN", variable=self.check_var3)
+        check_button2 = tkinter.ttk.Checkbutton(mighty, text="google", variable=self.check_var4)
+        check_button1.pack()
+        check_button2.pack()
+
+        Button(text="go", bg="cadetblue", command=self.show_single).pack()
+
+    def show_single(self):
+        another_paper.Windows(self.master)
 
     def create_context_menu(self, event):
         self.context_menu.post(event.x_root, event.y_root)
