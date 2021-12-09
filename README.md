@@ -11,6 +11,11 @@
 自动化标注系统既可以标注出通用属性，也可以针对部分类别案件标注出特别属性，如：危险驾驶罪，可标注出酒精含量和罚款金额
 
 ## 注意事项
+*2021-12-9 Update 4*
+
+- Pytorch 目前不支持Python3.10
+- 本项目统一使用Python3.9.9
+
 *2021-12-6 Update 3*
 
 - Windows 运行脚本前修改权限 `set-executionpolicy remotesigned`

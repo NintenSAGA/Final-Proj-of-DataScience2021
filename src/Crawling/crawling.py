@@ -7,14 +7,13 @@ from sys import stderr
 from selenium.webdriver import Edge, ActionChains
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import ElementClickInterceptedException, WebDriverException, NoSuchElementException, ElementNotInteractableException
-from selenium.webdriver import EdgeOptions
 
 from src import Crawling
 from src.Crawling import text_extract
 from src.Crawling.text_extract import gov_retrieve
-from src.Crawling.text_extract import pkulaw_retrieve
+from src.Crawling.text_extract import pkulaw_text_retrieve
 from src.Crawling.text_extract import cookies_import
-from src.Crawling.text_extract import pkulaw_retrieve_html_doc
+from src.Crawling.text_extract import pkulaw_html_file_retrieve
 from src.Crawling.common import result_folder
 from src.Crawling.text_extract import html_path
 
@@ -57,9 +56,7 @@ def crawl(n: int = 100, src: int = 1, from_page: int = 0):
     target_site: str
     global counter
 
-    option = EdgeOptions()
-
-    with Edge(executable_path=gimme_path(), options=option) as edge:
+    with Edge(executable_path=gimme_path()) as edge:
         print('Edge Webdriver 已正常启动')
         edge.set_window_position(-edge.get_window_size()['width'], 0)
         if src == 0:
@@ -101,10 +98,10 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
     url_list = result_folder + '~url_list.txt'
 
     if not os.path.exists(url_list) or input('是否要重新获取链接？(y/n): ').startswith('y'):
-        __pkulaw_html_fetch(n, edge, from_page)
+        __pkulaw_url_fetch(n, edge, from_page)
         cookies_import(edge.get_cookies())  # 将selenium的cookies转换给mechanicalsoup
-        print('log: 已完成cookie转换')
-        print('log: 休息十秒')
+        print('Log: 已完成cookie转换')
+        print('Log: 休息十秒')
         for i in range(0, 10):
             sys.stdout.write('\r{}'.format(10-i))
             sys.stdout.flush()
@@ -119,7 +116,7 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
         os.mkdir(text_extract.html_folder)
     else:
         if len(os.listdir(text_extract.html_folder)) >= n:
-            print('log: 已存在html文档缓存，正在核验完整性......')
+            print('Log: 已存在html文档缓存，正在核验完整性......')
             for i in range(0, n):
                 if not os.path.exists(html_path.format(i)):
                     print('alert: 第{}项缺失！'.format(i))
@@ -134,15 +131,15 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
                     continue
                 print('[{}]============================'.format(count))
                 if not skip_html_retrieve:
-                    pkulaw_retrieve_html_doc(line, count)
+                    pkulaw_html_file_retrieve(line, count)
                 try:
-                    pkulaw_retrieve(html_path.format(count), count)
+                    pkulaw_text_retrieve(html_path.format(count), count)
                 except Exception:
                     print('处理失败！\n')
                 count += 1
 
 
-def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
+def __pkulaw_url_fetch(n: int, edge: Edge, from_page: int = 0):
     edge.get("https://www.pkulaw.com/case/")
     n += from_page
 
@@ -154,12 +151,12 @@ def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
         print('登录情况异常，请使用南大网登录或手动登录')
         input('解决后输入任意字符：')
 
-    print('log: 正在筛选条件')
+    print('Log: 正在筛选条件')
 
     time.sleep(2)
     # 选择普通案例
     edge.find_element(By.XPATH, "//li[9]/a/span").click()
-    print('log: 已选择普通案例')
+    print('Log: 已选择普通案例')
 
     time.sleep(2)
     while True:
@@ -173,7 +170,7 @@ def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
                 break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
             continue
-    print('log: 已选择判决书')
+    print('Log: 已选择判决书')
 
     edge.set_window_position(0, 0)
     time.sleep(2)
@@ -191,7 +188,7 @@ def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
                 break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
             continue
-    print('log: 已选择刑事一审')
+    print('Log: 已选择刑事一审')
 
     edge.set_window_position(-edge.get_window_size()['width'], 0)
 
@@ -200,7 +197,7 @@ def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
     for i in range(0, 50):
         try:
             # 悬浮每页显示条目
-            print('log: 正在尝试选择每页100条......')
+            print('Log: 正在尝试选择每页100条......')
             element = edge.find_element(By.CSS_SELECTOR, ".articleSelect:nth-child(1) h4")
             actions = ActionChains(edge)
             actions.move_to_element(element).perform()
@@ -216,7 +213,7 @@ def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
         edge.set_window_position(0, 0)
         input('完成手动操作后输入任意键：')
         edge.set_window_position(-edge.get_window_size()['width'], 0)
-    print('log: 已选择每页100条')
+    print('Log: 已选择每页100条')
 
     time.sleep(2)
 
@@ -247,7 +244,7 @@ def __pkulaw_html_fetch(n: int, edge: Edge, from_page: int = 0):
                 break
             time.sleep(2)
 
-    print('log: 所有条目的链接扒取完毕')
+    print('Log: 所有条目的链接扒取完毕')
 
 
 def clear():

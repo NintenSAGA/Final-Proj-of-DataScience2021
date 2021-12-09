@@ -27,7 +27,7 @@ def cookies_import(cookies: list[dict]):
         browser.session.cookies.update(c)
 
 
-def pkulaw_retrieve_html_doc(url: str, counter: int):
+def pkulaw_html_file_retrieve(url: str, counter: int):
     """
     将北大法宝对应文章的文档转换为 html 文件，存入 '/result.txt/~html'
 
@@ -72,7 +72,7 @@ def str_insert(src: str, idx: int, val: str) -> str:
     return src[:idx] + val + src[idx:]
 
 
-def pkulaw_retrieve(html_doc: str, counter: int):
+def pkulaw_text_retrieve(html_doc: str, counter: int):
     """
     将北大法宝对应文章的html文档转换为 txt 文件，存入 '/result.txt'
 
@@ -84,7 +84,7 @@ def pkulaw_retrieve(html_doc: str, counter: int):
     print('正在处理文档......'.format(counter, counter))
 
     if not os.path.exists(html_doc):
-        print('alert: 未找到{}'.format(html_doc))
+        print('Alert 未找到{}'.format(html_doc))
         return
 
     with open(html_doc, 'r') as f:
