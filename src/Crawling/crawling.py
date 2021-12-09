@@ -7,7 +7,6 @@ from sys import stderr
 from selenium.webdriver import Edge, ActionChains
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import ElementClickInterceptedException, WebDriverException, NoSuchElementException, ElementNotInteractableException
-from selenium.webdriver import EdgeOptions
 
 from src import Crawling
 from src.Crawling import text_extract
@@ -57,9 +56,7 @@ def crawl(n: int = 100, src: int = 1, from_page: int = 0):
     target_site: str
     global counter
 
-    option = EdgeOptions()
-
-    with Edge(executable_path=gimme_path(), options=option) as edge:
+    with Edge(executable_path=gimme_path()) as edge:
         print('Edge Webdriver 已正常启动')
         edge.set_window_position(-edge.get_window_size()['width'], 0)
         if src == 0:
