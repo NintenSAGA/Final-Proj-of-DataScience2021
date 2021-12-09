@@ -70,7 +70,6 @@ class Application(Frame):
         check_button2 = tkinter.ttk.Checkbutton(mighty, text="google", variable=self.check_var4)
         check_button1.pack()
         check_button2.pack()
-
         Button(text="go", bg="cadetblue", command=self.show_single).pack()
 
     def show_single(self):
