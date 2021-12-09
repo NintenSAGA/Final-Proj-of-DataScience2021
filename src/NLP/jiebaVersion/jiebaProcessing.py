@@ -2,14 +2,44 @@ import jieba
 import re
 import jieba.posseg as pseg
 
-# 全国法院名单
-jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/全国法院名单')
+# 全国法院名单.txt
+jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/全国法院名单.txt')
 
-# 罪名
-jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/罪名')
+# 罪名.txt
+jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/罪名.txt')
 
 # 其他需要增加权重的词语
-jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/userdict')
+jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/userdict.txt')
+
+
+def getVerdict(filepath):
+    """ 根据文本格式，获得判决结果
+
+        :parameter filepath:文档路径
+        :return Verdict
+    """
+    with open(filepath, 'r') as file:
+        lines = file.read().split('\n')
+        temp = 0
+        for i in range(len(lines)):
+            if "判决如下" in lines[i]:
+                temp = i
+                break
+
+    return lines[temp+1]
+
+
+def posProcess(filePath):
+    # 处理字典词性
+    with open(filePath, 'r+') as file:
+        text = file.read()
+        lineList = text.split('\n')
+
+    with open(filePath, 'w+') as file:
+        for line in lineList:
+            file.write(''.join(line+' cg'+'\n'))
+
+    file.close()
 
 
 def textProcessing(filepath):
@@ -29,12 +59,14 @@ def textProcessing(filepath):
     return filterLines
 
 
-def calWordFrequency(text):
+def calWordFrequency(filepath):
     """
         获得分词后每个词的词性以及词频，并按词性分类，按词频排序，并写入 wF.txt
 
         :parameter tex(list)：待切割的文本
     """
+    text = textProcessing(filepath)
+    verdict = getVerdict(filepath)
     wordFrequency = {}
     with open('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/wF.txt', 'w') as wFfile:
         for line in text:
@@ -47,6 +79,7 @@ def calWordFrequency(text):
         sortedwordFrequency = sorted(wordFrequency.items(), key=lambda x: x[1], reverse=True)
         for word in sortedwordFrequency:
             wFfile.write(str(word) + '\n')
+        wFfile.write('('+verdict + '/re' + ', 1' + ')')
     wFfile.close()
 
 
@@ -63,8 +96,8 @@ def getResult(wFfilepath):
     # 地区
     area = ["地区"]
 
-    # 案由
-    case_cause = ["案由："]
+    # 罪名
+    case_cause = ["罪名："]
 
     # 审理法院
     court = ["法院："]
@@ -77,16 +110,30 @@ def getResult(wFfilepath):
 
     # 危险驾驶相关信息
     dan_message = ["危险驾驶："]
-    with open(wFfilepath) as wFfile:
+    with open(wFfilepath, 'r+') as wFfile:
         for line in wFfile:
-            words = line.split(',')
-            for word in words:
-                if word[0].endswith('nr'):
-                    personInfo.append(word[0])
-                elif word[0].endswith('法院'):
-                    court.append(word[0])
-                elif word[0].endswith('ns'):
-                    area.append(word[0])
+            line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", line)
+            line = line.strip().replace('  ', ' ')
+            words = line.split(" ")
+            if words[1] == 'nr':
+                personInfo.append(words[0])
+            elif words[1] == 'ct':
+                court.append(words[0])
+            elif words[1] == 'ns':
+                area.append(words[0])
+            elif words[1] == 'cg':
+                case_cause.append(words[0])
+            elif words[len(words)-2] == 've':
+                for word in words:
+                    sentences.append(word+'\n')
 
+    with open('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/result.txt', 'w') as resultfile:
+        resultfile.write(str(personInfo) + '\n')
+        resultfile.write(str(area) + '\n')
+        resultfile.write(str(case_cause) + '\n')
+        resultfile.write(str(court) + '\n')
+        resultfile.write(str(sentences) + '\n')
+        resultfile.write(str(money) + '\n')
+        resultfile.write(str(dan_message) + '\n')
 
 

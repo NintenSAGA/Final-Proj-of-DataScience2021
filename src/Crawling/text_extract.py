@@ -29,7 +29,7 @@ def cookies_import(cookies: list[dict]):
 
 def pkulaw_retrieve_html_doc(url: str, counter: int):
     """
-    将北大法宝对应文章的文档转换为 html 文件，存入 '/result/~html'
+    将北大法宝对应文章的文档转换为 html 文件，存入 '/result.txt/~html'
 
     :param url: 文档链接
     :param counter: 当前计数
@@ -74,7 +74,7 @@ def str_insert(src: str, idx: int, val: str) -> str:
 
 def pkulaw_retrieve(html_doc: str, counter: int):
     """
-    将北大法宝对应文章的html文档转换为 txt 文件，存入 '/result'
+    将北大法宝对应文章的html文档转换为 txt 文件，存入 '/result.txt'
 
     :param html_doc: 文档html
     :param counter: 当前计数
@@ -124,7 +124,7 @@ def pkulaw_retrieve(html_doc: str, counter: int):
 
 def gov_retrieve(url: str, counter: int):
     """
-    将中华人民共和国最高人民法院公报对应文章的文档转换为 txt 文件，存入 '/result'
+    将中华人民共和国最高人民法院公报对应文章的文档转换为 txt 文件，存入 '/result.txt'
 
     :param counter: 当前计数
     :param url: 文档链接
