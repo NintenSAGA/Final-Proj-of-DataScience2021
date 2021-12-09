@@ -63,6 +63,7 @@ class Application(Frame):
         tab_control.place(x=500, y=0)
         mighty = tkinter.ttk.Labelframe(first_tab, text='Mighty')
         mighty.grid(column=0, row=0, padx=8, pady=4)
+
         self.check_var3 = BooleanVar()
         self.check_var4 = BooleanVar()
         self.check_var3.set(True)  # 预设为勾选
@@ -70,6 +71,7 @@ class Application(Frame):
         check_button2 = tkinter.ttk.Checkbutton(mighty, text="google", variable=self.check_var4)
         check_button1.pack()
         check_button2.pack()
+
         Button(text="go", bg="cadetblue", command=self.show_single).pack()
 
     def show_single(self):
