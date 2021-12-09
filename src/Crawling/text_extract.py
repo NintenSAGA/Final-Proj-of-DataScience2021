@@ -84,7 +84,7 @@ def pkulaw_retrieve(html_doc: str, counter: int):
     print('正在处理文档......'.format(counter, counter))
 
     if not os.path.exists(html_doc):
-        print('alert: 未找到{}'.format(html_doc))
+        print('Alert 未找到{}'.format(html_doc))
         return
 
     with open(html_doc, 'r') as f:
