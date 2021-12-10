@@ -2,7 +2,6 @@ import os
 import sys
 import time
 import platform
-from sys import stderr
 import pickle
 
 from selenium.webdriver import Edge, ActionChains
@@ -18,11 +17,11 @@ from src.Crawling.text_extract import cookies_import
 from src.Crawling.text_extract import pkulaw_html_file_retrieve
 from src.Crawling.common import result_folder
 from src.Crawling.text_extract import html_path
+from src.Crawling.common import log
 
 gov_url = 'http://gongbao.court.gov.cn/QueryArticle.html?title=&content=&document_number=&serial_no=cpwsxd&year=-1&number=-1'
 pkulaw_url = 'https://www.pkulaw.com/case/'
 counter = 0
-log = []
 
 
 def gimme_path() -> str:
@@ -40,7 +39,7 @@ def gimme_path() -> str:
         print('运行系统为Windows')
         path = Crawling.__path__[0] + '/Webdriver/Edge/msedgedriver.exe'
     else:
-        print('你妈的，不支持', file=stderr)
+        print('Log：暂不支持此系统')
         raise NotImplementedError()
     return path
 
