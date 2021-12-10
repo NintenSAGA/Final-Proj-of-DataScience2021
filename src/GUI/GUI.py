@@ -105,8 +105,9 @@ class Application(Frame):
         pass
 
 
-root = Tk()
-root.geometry("500x500+200+300")
-root.title("一个经典的GUI程序类的测试")
-app = Application(master=root)
-root.mainloop()
+if __name__ == '__main__':
+    root = Tk()
+    root.geometry("500x500+200+300")
+    root.title("一个经典的GUI程序类的测试")
+    app = Application(master=root)
+    root.mainloop()

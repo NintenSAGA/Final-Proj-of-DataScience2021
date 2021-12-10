@@ -6,10 +6,13 @@ from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
 from src.Crawling.common import result_folder
+from src.Crawling import crawling
 
 browser = None
 html_folder = result_folder + '~html/'
 html_path = html_folder + '{}.html'
+refined_text_path = result_folder + '~refined_text/'
+noise_set: set = set()
 
 
 def cookies_import(cookies: list[dict]):
@@ -52,19 +55,34 @@ def anti_anti_crawler(full_text: bs4.Tag):
         # 删除防爬虫信息
         if s.findChild():
             e = s.findChild()
-            print(str.strip(e.text) + ' deleted')
+            noise = str.strip(e.text)
+            noise_set.add(noise)
+            print(noise + ' deleted')
             e.decompose()
 
     for s in full_text.find_all('a'):
         # 删除防爬虫信息
         if s.findChild():
             e = s.findChild()
-            print(str.strip(e.text) + ' deleted')
+            noise = str.strip(e.text)
+            noise_set.add(noise)
+            print(noise + ' deleted')
             e.decompose()
 
-    for e in full_text.find_all(['em', 'sup', 'strong', 'small', 'i', 'sub', 'button']):
+    for s in full_text.find_all('a', {'class': 'hide'}):
         # 删除防爬虫信息
-        print(str.strip(e.text) + 'deleted')
+        if s.findChild():
+            e = s.findChild()
+            noise = str.strip(e.text)
+            noise_set.add(noise)
+            print(noise + ' deleted')
+            e.decompose()
+
+    for e in full_text.find_all(['em', 'sup', 'strong', 'small', 'i', 'sub', 'button', 'b']):
+        # 删除防爬虫信息
+        noise = str.strip(e.text)
+        noise_set.add(noise)
+        print(noise + ' deleted')
         e.decompose()
 
 
@@ -92,7 +110,7 @@ def pkulaw_text_retrieve(html_doc: str, counter: int):
 
     full_text = soup.find('div', {'class', 'fulltext'})
     
-    anti_anti_crawler(full_text)
+    # anti_anti_crawler(full_text)
 
     title_tag = full_text.find('p')
     title = str.strip(title_tag.text)
@@ -103,23 +121,39 @@ def pkulaw_text_retrieve(html_doc: str, counter: int):
     for i in info_tag:
         i.decompose()
 
-    refined_text = str.strip(full_text.text).replace(' ', '').replace('\n', '')
+    refined_text = str.strip(full_text.text).replace('\t', '').replace(' ', '').replace('\n', '')
 
-    cut_list = ['判决如下：', '附相关法律条文：']
+    refined_text = noise_deletion(refined_text)
+
+    found = False
+    cut_list = ['判决如下', '附相关法律条文', '判决结', '判决主']
     for words in cut_list:
         idx = refined_text.find(words)
         if idx < 0:
             continue
-        refined_text = str_insert(refined_text, idx + len(words), os.linesep)
+        found = True
+        refined_text = str_insert(refined_text, idx + len(words) + 1, os.linesep)
         refined_text = str_insert(refined_text, idx, os.linesep * 2)
 
     print('{}.{} retrieved'.format(counter, title) + os.linesep)
-    with open(result_folder + str(counter) + '.' + title + '.txt', 'w') as f:
+    if not os.path.exists(refined_text_path):
+        os.mkdir(refined_text_path)
+    with open(refined_text_path + '{}.{}.txt'.format(counter, title), 'w') as f:
         f.write(title + os.linesep)
         for info in info_lines:
             f.write(info)
         f.write(os.linesep)
         f.write(refined_text)
+    if not found:
+        crawling.log.append('{}.{} 审判结果未找到'.format(counter, title))
+
+
+def noise_deletion(refined_text) -> str:
+    for noise in noise_set:
+        while refined_text.find(noise) >= 0:
+            print('Log: {} deleted.'.format(noise))
+            refined_text = refined_text.replace(noise, '')
+    return refined_text
 
 
 def gov_retrieve(url: str, counter: int):

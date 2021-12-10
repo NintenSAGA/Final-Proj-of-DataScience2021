@@ -3,10 +3,12 @@ import sys
 import time
 import platform
 from sys import stderr
+import pickle
 
 from selenium.webdriver import Edge, ActionChains
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import ElementClickInterceptedException, WebDriverException, NoSuchElementException, ElementNotInteractableException
+from selenium.common.exceptions import ElementClickInterceptedException, WebDriverException, NoSuchElementException, \
+    ElementNotInteractableException
 
 from src import Crawling
 from src.Crawling import text_extract
@@ -20,6 +22,7 @@ from src.Crawling.text_extract import html_path
 gov_url = 'http://gongbao.court.gov.cn/QueryArticle.html?title=&content=&document_number=&serial_no=cpwsxd&year=-1&number=-1'
 pkulaw_url = 'https://www.pkulaw.com/case/'
 counter = 0
+log = []
 
 
 def gimme_path() -> str:
@@ -42,10 +45,13 @@ def gimme_path() -> str:
     return path
 
 
-def crawl(n: int = 100, src: int = 1, from_page: int = 0):
+def crawl(n: int = 100, src: int = 1, from_page: int = 0,
+          skip_url_fetch: bool = False, skip_html_retrieve: bool = False):
     """
     利用 Selenium 扒取裁判文书
 
+    :param skip_html_retrieve:
+    :param skip_url_fetch:
     :param from_page: 从第几份开始
     :param n: 要扒取的文件数量
     :param src: 文献来源，0 - 中华人民共和国最高人民法院公报, 1 - 北大法宝
@@ -62,7 +68,7 @@ def crawl(n: int = 100, src: int = 1, from_page: int = 0):
         if src == 0:
             __gov_crawling(n, edge)
         else:
-            __pkulaw_crawling(n, edge, from_page)
+            __pkulaw_crawling(n, edge, from_page, skip_url_fetch, skip_html_retrieve)
 
 
 def __gov_crawling(n: int, edge: Edge):
@@ -87,7 +93,8 @@ def __gov_crawling(n: int, edge: Edge):
             time.sleep(2)
 
 
-def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
+def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0,
+                      skip_url_fetch: bool = False, skip_html_retrieve: bool = False):
     """
     利用 Selenium 扒取北大法宝的裁判文书
 
@@ -96,6 +103,7 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
     """
     global counter
     url_list = result_folder + '~url_list.txt'
+    text_extract.noise_set = pickle.load(open(result_folder + '~noise_set.pkl', 'rb'))
 
     if not os.path.exists(url_list) or input('是否要重新获取链接？(y/n): ').startswith('y'):
         __pkulaw_url_fetch(n, edge, from_page)
@@ -103,14 +111,13 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
         print('Log: 已完成cookie转换')
         print('Log: 休息十秒')
         for i in range(0, 10):
-            sys.stdout.write('\r{}'.format(10-i))
+            sys.stdout.write('\r{}'.format(10 - i))
             sys.stdout.flush()
             time.sleep(1)
         sys.stdout.write('\r0' + os.linesep)
         sys.stdout.flush()
 
     edge.quit()
-    skip_html_retrieve = False
 
     if not os.path.exists(text_extract.html_folder):
         os.mkdir(text_extract.html_folder)
@@ -137,6 +144,8 @@ def __pkulaw_crawling(n: int, edge: Edge, from_page: int = 0):
                 except Exception:
                     print('处理失败！\n')
                 count += 1
+    with open(result_folder + 'log.txt', 'w') as l:
+        l.write(os.linesep.join(log))
 
 
 def __pkulaw_url_fetch(n: int, edge: Edge, from_page: int = 0):
@@ -176,16 +185,17 @@ def __pkulaw_url_fetch(n: int, edge: Edge, from_page: int = 0):
     time.sleep(2)
     while True:
         try:
+            print('Log: 正在尝试选择刑事一审......')
             if edge.find_element(By.XPATH, '//*[@id="CaseClassport_9_switch"]').get_attribute('class').endswith(
                     'close'):
                 edge.find_element(By.XPATH, "//div[4]/div/ul/li[2]/span").click()
             else:
                 edge.find_element(By.XPATH, "//li[2]/ul/li/a/span").click()
                 time.sleep(2)
-                if not edge.find_element(By.XPATH,
+            if not edge.find_element(By.XPATH,
                                          '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]').text.startswith('案'):
-                    continue
-                break
+                continue
+            break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
             continue
     print('Log: 已选择刑事一审')
@@ -221,14 +231,16 @@ def __pkulaw_url_fetch(n: int, edge: Edge, from_page: int = 0):
     count = 0
 
     url_list = result_folder + '~url_list.txt'
-    if os.path.exists(url_list):
-        os.remove(url_list)
 
+    url_set = set()
     while count < n:
         entries = edge.find_elements(By.XPATH, '//*[@id="rightContent"]/div[3]/div/ul/li')
         for e in entries:
             href = e.find_element(By.XPATH, './/div/div/h4/a').get_attribute('href')
-            print(href, file=open(url_list, 'a+'))
+            if href in url_set:
+                print('重复！')
+                break
+            url_set.add(href)
             print('HTML of entry[' + str(count) + '] retrieved')
             count += 1
             if count == n:
@@ -239,12 +251,14 @@ def __pkulaw_url_fetch(n: int, edge: Edge, from_page: int = 0):
                     edge.find_element(By.XPATH, '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li[8]/a').click()  # 翻页
                 except WebDriverException:
                     edge.set_window_position(0, 0)
+                    print('Log: 疑似出现验证码，请手动操作')
                     time.sleep(0.5)
                     continue
                 break
             time.sleep(2)
-
     print('Log: 所有条目的链接扒取完毕')
+    with open(url_list, 'w') as f:
+        f.write('\n'.join(url_set))
 
 
 def clear():
