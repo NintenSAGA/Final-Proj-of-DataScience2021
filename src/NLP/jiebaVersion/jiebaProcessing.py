@@ -77,9 +77,9 @@ def calWordFrequency(filepath):
                     wordFrequency[str(word)] = 1
 
         sortedwordFrequency = sorted(wordFrequency.items(), key=lambda x: x[1], reverse=True)
+        wFfile.write('(\''+verdict + '/re' + '\')'+'\n')
         for word in sortedwordFrequency:
             wFfile.write(str(word) + '\n')
-        wFfile.write('('+verdict + '/re' + ', 1' + ')')
     wFfile.close()
 
 
@@ -94,7 +94,7 @@ def getResult(wFfilepath):
     personInfo = ["姓名："]
 
     # 地区
-    area = ["地区"]
+    area = ["地区:"]
 
     # 罪名
     case_cause = ["罪名："]
@@ -123,17 +123,23 @@ def getResult(wFfilepath):
                 area.append(words[0])
             elif words[1] == 'cg':
                 case_cause.append(words[0])
-            elif words[len(words)-2] == 've':
+            elif words[len(words)-1] == 're':
                 for word in words:
-                    sentences.append(word+'\n')
+                    if word != 're':
+                        sentences.append('\n\t' + word)
 
     with open('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/result.txt', 'w') as resultfile:
-        resultfile.write(str(personInfo) + '\n')
-        resultfile.write(str(area) + '\n')
-        resultfile.write(str(case_cause) + '\n')
-        resultfile.write(str(court) + '\n')
-        resultfile.write(str(sentences) + '\n')
-        resultfile.write(str(money) + '\n')
-        resultfile.write(str(dan_message) + '\n')
+        resultfile.write(toString(personInfo) + '\n')
+        resultfile.write(toString(area) + '\n')
+        resultfile.write(toString(case_cause) + '\n')
+        resultfile.write(toString(court) + '\n')
+        resultfile.write(toString(sentences) + '\n')
+        resultfile.write(toString(money) + '\n')
+        resultfile.write(toString(dan_message) + '\n')
 
 
+def toString(s):
+    res = ""
+    for word in s:
+        res += (word + ' ')
+    return res
