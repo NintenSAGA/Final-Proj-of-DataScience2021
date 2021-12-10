@@ -2,10 +2,10 @@ import sys
 import time
 from datetime import datetime
 
-from Crawling.crawling import crawl, clear
-from Crawling.text_extract import pkulaw_text_retrieve
-from Crawling import common
-from NLP.jiebaVersion.jiebaProcessing import cal_word_frequency, get_result
+from crawling.core import crawl, clear
+from src.crawling.text_extract.pkulaw import retrieve_text
+from crawling import common
+from NLP.jiebaVersion.jiebaProcessing import calWordFrequency, getResult
 
 if __name__ == '__main__':
     # crawl(200, 1, 200)
