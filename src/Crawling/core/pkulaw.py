@@ -1,103 +1,37 @@
 import os
 import sys
 import time
-import platform
 
-from selenium.webdriver import Edge, ActionChains
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import ElementClickInterceptedException, WebDriverException, NoSuchElementException, \
+from selenium.common.exceptions import WebDriverException, ElementClickInterceptedException, NoSuchElementException, \
     ElementNotInteractableException
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver import Edge
 
-from src import crawling
-from src.crawling.text_extract import gov_retrieve
-from src.crawling.text_extract.pku_law import import_cookies, retrieve_html_file_pkulaw, retrieve_text_pkulaw
-from src.crawling.common import result_folder, html_path, log, html_folder
-gov_url = 'http://gongbao.court.gov.cn/QueryArticle.html?title=&content=&document_number=&serial_no=cpwsxd&year=-1&number=-1'
-pkulaw_url = 'https://www.pkulaw.com/case/'
+from src.crawling.common import result_folder, html_folder, html_path, log
+from src.crawling.text_extract.pkulaw import import_cookies, retrieve_html_file, retrieve_text
 counter = 0
 
-
-def __get_webdriver_path() -> str:
-    """ 检查系统类型，获取相应版本的 Edge webdriver 运行路径。
-        目前仅支持 macOS 和 Windows
-
-        :return: executable_path
-    """
-    path: str
-    os_type = platform.system()
-    if os_type == 'Darwin':
-        print('运行系统为macOS')
-        path = crawling.__path__[0] + '/Webdriver/Edge/msedgedriver'
-    elif os_type == 'Windows':
-        print('运行系统为Windows')
-        path = crawling.__path__[0] + '/Webdriver/Edge/msedgedriver.exe'
-    else:
-        print('Log：暂不支持此系统')
-        raise NotImplementedError()
-    return path
+pkulaw_url = 'https://www.pkulaw.com/case/'
 
 
-def crawl(n: int = 100, src: int = 1, from_page: int = 0,
-          skip_url_fetch: bool = False, skip_html_retrieve: bool = False):
-    """
-    利用 Selenium 扒取裁判文书
-
-    :param skip_html_retrieve:
-    :param skip_url_fetch:
-    :param from_page: 从第几份开始
-    :param n: 要扒取的文件数量
-    :param src: 文献来源，0 - 中华人民共和国最高人民法院公报, 1 - 北大法宝
-    """
-
-    assert src == 0 or src == 1
-
-    target_site: str
-    global counter
-
-    with Edge(executable_path=__get_webdriver_path()) as edge:
-        print('Edge Webdriver 已正常启动')
-        edge.set_window_position(-edge.get_window_size()['width'], 0)
-        if src == 0:
-            __crawl_gov(n, edge)
-        else:
-            __crawl_pkulaw(n, edge, from_page, skip_url_fetch, skip_html_retrieve)
-
-
-def __crawl_gov(n: int, edge: Edge):
-    """
-    利用 Selenium 扒取中华人民共和国最高人民法院公报的裁判文书
-    :param n: 要扒取的文件数量
-    """
-    target_site = gov_url
-    global counter
-
-    edge.get(target_site)
-
-    while counter < n:
-        entries = edge.find_elements(By.XPATH, '//*[@id="datas"]/li')
-        for i in range(1, min(len(entries), n - counter + 1)):
-            entry = entries[i]
-            target_site = entry.find_element(By.XPATH, './/span/a').get_attribute('href')
-            gov_retrieve(target_site, counter)
-            counter += 1
-        if not counter >= n:
-            edge.find_element(By.XPATH, '//*[@id="pager"]/a[4]').click()
-            time.sleep(2)
-
-
-def __crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
-                   skip_url_fetch: bool = False, skip_html_retrieve: bool = False):
+def crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
+                 skip_url_fetch: bool = False, skip_html_retrieve: bool = False):
     """
     利用 Selenium 扒取北大法宝的裁判文书
 
     需使用南大ip
+    :param skip_html_retrieve:
+    :param skip_url_fetch:
+    :param from_page:
+    :param edge:
     :param n: 要扒取的文件数量
     """
     global counter
     url_list = result_folder + '~url_list.txt'
 
     if not os.path.exists(url_list) or input('是否要重新获取链接？(y/n): ').startswith('y'):
-        __fetch_url_pkulaw(n, edge, from_page)
+        fetch_url(n, edge, from_page)
         import_cookies(edge.get_cookies())  # 将selenium的cookies转换给mechanicalsoup
         print('Log: 已完成cookie转换')
         print('Log: 休息十秒')
@@ -130,9 +64,9 @@ def __crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
                     continue
                 print('[{}]============================'.format(count))
                 if not skip_html_retrieve:
-                    retrieve_html_file_pkulaw(line, count)
+                    retrieve_html_file(line, count)
                 try:
-                    retrieve_text_pkulaw(html_path.format(count), count)
+                    retrieve_text(html_path.format(count), count)
                 except Exception:
                     print('处理失败！\n')
                 count += 1
@@ -140,7 +74,7 @@ def __crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
         l.write(os.linesep.join(log))
 
 
-def __fetch_url_pkulaw(n: int, edge: Edge, from_page: int = 0):
+def fetch_url(n: int, edge: Edge, from_page: int = 0):
     edge.get("https://www.pkulaw.com/case/")
     n += from_page
 
@@ -185,7 +119,7 @@ def __fetch_url_pkulaw(n: int, edge: Edge, from_page: int = 0):
                 edge.find_element(By.XPATH, "//li[2]/ul/li/a/span").click()
                 time.sleep(2)
             if not edge.find_element(By.XPATH,
-                                         '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]').text.startswith('案'):
+                                     '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]').text.startswith('案'):
                 continue
             break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
@@ -251,20 +185,3 @@ def __fetch_url_pkulaw(n: int, edge: Edge, from_page: int = 0):
     print('Log: 所有条目的链接扒取完毕')
     with open(url_list, 'w') as f:
         f.write('\n'.join(url_set))
-
-
-def clear():
-    """
-    删除'/results/'中的所有文件
-
-    :return:
-    """
-    if input('确定要删除所有缓存文件吗？(y/n): ').startswith('y'):
-        if len(os.listdir(result_folder)) <= 1:
-            print('都没文件了哥哥')
-            return
-        for file_name in os.listdir(result_folder):
-            if file_name.startswith('~'):
-                continue
-            print(file_name + ' is deleted')
-            os.remove(result_folder + file_name)

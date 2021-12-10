@@ -4,6 +4,7 @@ import bs4
 from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
+
 from src.crawling.common import html_path, noise_set, refined_text_path, log
 from src.crawling.text_extract import str_insert
 
@@ -25,7 +26,7 @@ def import_cookies(cookies: list[dict]):
         browser.session.cookies.update(c)
 
 
-def retrieve_html_file_pkulaw(url: str, counter: int):
+def retrieve_html_file(url: str, counter: int):
     """
     将北大法宝对应文章的文档转换为 html 文件，存入 '/result.txt/~html'
 
@@ -86,7 +87,7 @@ def anti_anti_crawler(full_text: bs4.Tag):
         e.decompose()
 
 
-def retrieve_text_pkulaw(html_doc: str, counter: int):
+def retrieve_text(html_doc: str, counter: int):
     """
     将北大法宝对应文章的html文档转换为 txt 文件，存入 '/result.txt'
 

@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 from crawling.core import crawl, clear
-from src.crawling.text_extract.pku_law import retrieve_text_pkulaw
+from src.crawling.text_extract.pkulaw import retrieve_text
 from crawling import common
 from NLP.jiebaVersion.jiebaProcessing import calWordFrequency, getResult
 
