@@ -45,8 +45,8 @@
    """
    - Module Name 为模块名称，使用前需先import, 
    	e.g.: 
-   	- from src import Crawling
-   	- Crawling.__path__[0]
+   	- from src import crawling
+   	- crawling.__path__[0]
    	
    - __path__属性为数组
    """
