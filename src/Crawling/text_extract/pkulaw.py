@@ -1,11 +1,12 @@
 import os
+import pickle
 
 import bs4
 from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
 
-from src.crawling.common import html_path, noise_set, refined_text_path, log
+from src.crawling.common import html_path, noise_set, refined_text_path, log, noise_path
 from src.crawling.text_extract import str_insert
 
 browser = None
@@ -46,12 +47,12 @@ def retrieve_html_file(url: str, counter: int):
 
 
 def anti_anti_crawler(full_text: bs4.Tag):
-    '''
+    """
     通过探测HTML元素来删除污染信息，已不被使用
 
     :param full_text:
     :return:
-    '''
+    """
     for s in full_text.find_all('span'):
         # 删除防爬虫信息
         if s.findChild():
@@ -107,7 +108,7 @@ def retrieve_text(html_doc: str, counter: int):
 
     full_text = soup.find('div', {'class', 'fulltext'})
 
-    # anti_anti_crawler(full_text)
+    anti_anti_crawler(full_text)
 
     title_tag = full_text.find('p')
     title = str.strip(title_tag.text)
@@ -143,6 +144,7 @@ def retrieve_text(html_doc: str, counter: int):
         f.write(refined_text)
     if not found:
         log.append('{}.{} 审判结果未找到'.format(counter, title))
+    pickle.dump(noise_set, open(noise_path, 'wb'))
 
 
 def noise_deletion(refined_text) -> str:

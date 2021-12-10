@@ -9,7 +9,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import Edge
 
 from src.crawling.common import result_folder, html_folder, html_path, log
-from src.crawling.text_extract.pkulaw import import_cookies, retrieve_html_file, retrieve_text
+from src.crawling.text_extract.pkulaw import import_cookies, retrieve_html_file, retrieve_text, noise_set
+
 counter = 0
 
 pkulaw_url = 'https://www.pkulaw.com/case/'
@@ -29,6 +30,8 @@ def crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
     """
     global counter
     url_list = result_folder + '~url_list.txt'
+    org_len = len(noise_set)
+    print("Log: 当前噪音过滤条目{}条".format(org_len))
 
     if not os.path.exists(url_list) or input('是否要重新获取链接？(y/n): ').startswith('y'):
         fetch_url(n, edge, from_page)
@@ -70,6 +73,9 @@ def crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
                 except Exception:
                     print('处理失败！\n')
                 count += 1
+
+    if len(noise_set) != org_len:
+        log.append('噪音条目由{}条增加至{}条'.format(org_len, len(noise_set)))
     with open(result_folder + 'log.txt', 'w') as l:
         l.write(os.linesep.join(log))
 
@@ -118,8 +124,8 @@ def fetch_url(n: int, edge: Edge, from_page: int = 0):
             else:
                 edge.find_element(By.XPATH, "//li[2]/ul/li/a/span").click()
                 time.sleep(2)
-            if not edge.find_element(By.XPATH,
-                                     '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]').text.startswith('案'):
+            if '案' not in edge.find_element(By.XPATH,
+                                            '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]/b').text:
                 continue
             break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
