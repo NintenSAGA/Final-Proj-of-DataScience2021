@@ -22,11 +22,12 @@ def get_verdict(filepath):
         lines = file.read().split('\n')
         temp = 0
         for i in range(len(lines)):
-            if ("判决如下：" or "判决结果：" or "判决主文：") in lines[i]:
+            if ("判决如下" or "判决结果" or "判决主文") in lines[i]:
                 temp = i
                 break
 
     return lines[temp+1]
+
 
 def get_danger_info(filepath):
     """
@@ -37,10 +38,10 @@ def get_danger_info(filepath):
     """
     with open(filepath, 'r') as file:
         lines = file.read().split('\n')
-        danInfo = ''
+        danInfo = 'None'
         for i in range(len(lines)):
-            if re.match(r'/(\d+(\.\d+)?../\d+..)/g', lines[i]):
-                danInfo = re.match(r'/\d+(\.\d+)?../\d+../g', lines[i])
+            if re.search(r'\d+(\.\d+)?(ｍｇ|mg)([／/])\d+(ｍｌ|ml)', lines[i], re.DOTALL):
+                danInfo = re.search(r'\d+(\.\d+)?(ｍｇ|mg)([／/])\d+(ｍｌ|ml)', lines[i], re.DOTALL).group(0)
                 break
 
     return danInfo
@@ -95,8 +96,8 @@ def cal_word_frequency(filepath):
                     wordFrequency[str(word)] = 1
 
         sortedwordFrequency = sorted(wordFrequency.items(), key=lambda x: x[1], reverse=True)
+        wFfile.write('(\'' + danInfo + '/ac' + '\')' + '\n')
         wFfile.write('(\''+verdict + '/re' + '\')'+'\n')
-        wFfile.write('(\''+danInfo + '/ac' + '\')'+'\n')
         for word in sortedwordFrequency:
             wFfile.write(str(word) + '\n')
     wFfile.close()
@@ -130,6 +131,8 @@ def get_result(wFfilepath):
     # 危险驾驶相关信息
     dan_message = ["危险驾驶："]
     with open(wFfilepath, 'r+') as wFfile:
+        firstLine = wFfile.readline()
+        dan_message.append(firstLine.split('/ac')[0].strip('(\''))
         for line in wFfile:
             line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", line)
             line = line.strip().replace('  ', ' ')
@@ -146,6 +149,8 @@ def get_result(wFfilepath):
                 for word in words:
                     if word != 're':
                         sentences.append('\n\t' + word)
+
+
 
     with open('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/result.txt', 'w') as resultfile:
         resultfile.write(toString(personInfo) + '\n')
