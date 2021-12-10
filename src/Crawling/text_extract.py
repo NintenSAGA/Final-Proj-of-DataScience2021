@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
 from src.Crawling.common import result_folder
-from src.Crawling import crawling
+from src.Crawling.common import log
 
 browser = None
 html_folder = result_folder + '~html/'
@@ -145,7 +145,7 @@ def pkulaw_text_retrieve(html_doc: str, counter: int):
         f.write(os.linesep)
         f.write(refined_text)
     if not found:
-        crawling.log.append('{}.{} 审判结果未找到'.format(counter, title))
+        log.append('{}.{} 审判结果未找到'.format(counter, title))
 
 
 def noise_deletion(refined_text) -> str:
