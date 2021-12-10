@@ -22,7 +22,7 @@ def getVerdict(filepath):
         lines = file.read().split('\n')
         temp = 0
         for i in range(len(lines)):
-            if "判决如下" in lines[i]:
+            if ("判决如下：" or "判决结果：" or "判决主文：") in lines[i]:
                 temp = i
                 break
 
