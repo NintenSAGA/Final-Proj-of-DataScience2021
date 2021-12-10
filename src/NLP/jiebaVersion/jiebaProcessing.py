@@ -12,7 +12,7 @@ jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jieba
 jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/userdict.txt')
 
 
-def getVerdict(filepath):
+def get_verdict(filepath):
     """ 根据文本格式，获得判决结果
 
         :parameter filepath:文档路径
@@ -28,7 +28,7 @@ def getVerdict(filepath):
 
     return lines[temp+1]
 
-def getDanInfo(filepath):
+def get_danger_info(filepath):
     """
         得到危险驾驶信息
 
@@ -39,14 +39,14 @@ def getDanInfo(filepath):
         lines = file.read().split('\n')
         danInfo = ''
         for i in range(len(lines)):
-            if re.match( '\d+(\.\d+)?mg/\d+ml', lines[i] ):
-                danInfo = re.match('\d+(\.\d+)?mg/\d+ml', lines[i])
+            if re.match(r'/(\d+(\.\d+)?../\d+..)/g', lines[i]):
+                danInfo = re.match(r'/\d+(\.\d+)?../\d+../g', lines[i])
                 break
 
     return danInfo
 
 
-def posProcess(filePath):
+def process_property(filePath):
     # 处理字典词性
     with open(filePath, 'r+') as file:
         text = file.read()
@@ -59,7 +59,7 @@ def posProcess(filePath):
     file.close()
 
 
-def textProcessing(filepath):
+def process_text(filepath):
     """ 处理文本，过滤标点符号，并返回list
 
         :parameter filepath:文档路径
@@ -76,14 +76,15 @@ def textProcessing(filepath):
     return filterLines
 
 
-def calWordFrequency(filepath):
+def cal_word_frequency(filepath):
     """
         获得分词后每个词的词性以及词频，并按词性分类，按词频排序，并写入 wF.txt
 
         :parameter tex(list)：待切割的文本
     """
-    text = textProcessing(filepath)
-    verdict = getVerdict(filepath)
+    text = process_text(filepath)
+    verdict = get_verdict(filepath)
+    danInfo = get_danger_info(filepath)
     wordFrequency = {}
     with open('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/wF.txt', 'w') as wFfile:
         for line in text:
@@ -95,12 +96,13 @@ def calWordFrequency(filepath):
 
         sortedwordFrequency = sorted(wordFrequency.items(), key=lambda x: x[1], reverse=True)
         wFfile.write('(\''+verdict + '/re' + '\')'+'\n')
+        wFfile.write('(\''+danInfo + '/ac' + '\')'+'\n')
         for word in sortedwordFrequency:
             wFfile.write(str(word) + '\n')
     wFfile.close()
 
 
-def getResult(wFfilepath):
+def get_result(wFfilepath):
     """
         计算得到结果
 
