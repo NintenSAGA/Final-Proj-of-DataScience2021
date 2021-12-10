@@ -28,6 +28,23 @@ def getVerdict(filepath):
 
     return lines[temp+1]
 
+def getDanInfo(filepath):
+    """
+        得到危险驾驶信息
+
+        :parameter filepath:文本路径
+        :return danInfo
+    """
+    with open(filepath, 'r') as file:
+        lines = file.read().split('\n')
+        danInfo = ''
+        for i in range(len(lines)):
+            if re.match( '\d+(\.\d+)?mg/\d+ml', lines[i] ):
+                danInfo = re.match('\d+(\.\d+)?mg/\d+ml', lines[i])
+                break
+
+    return danInfo
+
 
 def posProcess(filePath):
     # 处理字典词性
