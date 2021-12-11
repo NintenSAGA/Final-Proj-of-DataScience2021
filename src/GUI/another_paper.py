@@ -12,8 +12,10 @@ class Windows:
         self.root.title("自动化爬取和标注")  # 窗体标题
         self.root.grab_set()
         self.root.resizable(False, False)
+        self.big_canvas = None
         self.text_pad = None
         self.create_menu()
+        self.create_canvas()
         self.file_name = None
         self.create_text_pad()
         self.create_dire_label_and_entry()
@@ -48,34 +50,39 @@ class Windows:
         self.context_menu.add_command(label="别点了，没用的", command=self.test)
         self.root.bind("<Button-3>", self.create_context_menu)
 
+    def create_canvas(self):
+        self.big_canvas = Canvas(self.root, bg='white', width=1200, height=700, highlightcolor='pink')
+        self.big_canvas.create_line(600, 25, 600, 675)
+        self.big_canvas.pack()
+
         # 文本框设置
     def create_text_pad(self):
-        self.text_pad = ScrolledText(self.root, width=70, height=40)
-        self.text_pad.place(x=50, y=80)
+        self.text_pad = ScrolledText(self.big_canvas, width=65, height=35, bg='white')
+        self.text_pad.place(x=50, y=135)
 
         # 显示文件夹的当前位置
     def create_dire_label_and_entry(self):
         pass
 
     def create_tab_basic_information(self):
-        tab_control = tkinter.ttk.Notebook(self.root)
+        tab_control = tkinter.ttk.Notebook(self.big_canvas, height=200, width=400)
         first_tab = tkinter.ttk.Frame(tab_control)
+        label_basic_information = Label(tab_control, text='基本信息', fg='blue')
+        label_basic_information.place(x=325, y=0)
         tab_control.add(first_tab, text='姓名')
         second_tab = tkinter.ttk.Frame(tab_control)
         tab_control.add(second_tab, text='法院')
         tab_control.place(x=700, y=50)
-        mighty = tkinter.ttk.Labelframe(first_tab, text='Mighty')
-        mighty.grid(column=0, row=0, padx=8, pady=4)
-        self.create_tab1_information(mighty)
+        self.create_tab1_information(first_tab)
 
-    def create_tab1_information(self, mighty):
+    def create_tab1_information(self, first_tabel):
         self.check_var3 = BooleanVar()
         self.check_var4 = BooleanVar()
         self.check_var3.set(True)  # 预设为勾选
-        check_button1 = Checkbutton(mighty, text="RUN", variable=self.check_var3, anchor='w')
-        check_button2 = Checkbutton(mighty, text="google", variable=self.check_var4, anchor='w')
-        check_button1.pack()
-        check_button2.pack()
+        check_button1 = Checkbutton(first_tabel, text="run", variable=self.check_var3, anchor='w', padx=10, pady=10)
+        check_button2 = Checkbutton(first_tabel, text="google", variable=self.check_var4, anchor='w', padx=10, pady=10)
+        check_button1.place(x=0, y=0)
+        check_button2.place(x=0, y=40)
 
     def create_context_menu(self, event):
         self.context_menu.post(event.x_root, event.y_root)
