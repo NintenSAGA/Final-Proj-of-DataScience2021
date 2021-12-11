@@ -1,18 +1,18 @@
 import os
+import pickle
 
 import bs4
-import requests
 from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
-from src.Crawling.common import result_folder
+
+from src.crawling.common import html_path, noise_set, refined_text_path, log, noise_path
+from src.crawling.text_extract import str_insert
 
 browser = None
-html_folder = result_folder + '~html/'
-html_path = html_folder + '{}.html'
 
 
-def cookies_import(cookies: list[dict]):
+def import_cookies(cookies: list[dict]):
     """
     将 selenium 已有的cookie导入 mechanicalsoup
 
@@ -27,16 +27,15 @@ def cookies_import(cookies: list[dict]):
         browser.session.cookies.update(c)
 
 
-def pkulaw_html_file_retrieve(url: str, counter: int):
+def retrieve_html_file(url: str, counter: int):
     """
-    将北大法宝对应文章的文档转换为 html 文件，存入 '/result/~html'
+    将北大法宝对应文章的文档转换为 html 文件，存入 '/result.txt/~html'
 
     :param url: 文档链接
     :param counter: 当前计数
     :return:
     """
     global browser
-    global html_path
 
     if browser is None:
         browser = StatefulBrowser()
@@ -48,33 +47,50 @@ def pkulaw_html_file_retrieve(url: str, counter: int):
 
 
 def anti_anti_crawler(full_text: bs4.Tag):
+    """
+    通过探测HTML元素来删除污染信息，已不被使用
+
+    :param full_text:
+    :return:
+    """
     for s in full_text.find_all('span'):
         # 删除防爬虫信息
         if s.findChild():
             e = s.findChild()
-            print(str.strip(e.text) + ' deleted')
+            noise = str.strip(e.text)
+            noise_set.add(noise)
+            print(noise + ' deleted')
             e.decompose()
 
     for s in full_text.find_all('a'):
         # 删除防爬虫信息
         if s.findChild():
             e = s.findChild()
-            print(str.strip(e.text) + ' deleted')
+            noise = str.strip(e.text)
+            noise_set.add(noise)
+            print(noise + ' deleted')
             e.decompose()
 
-    for e in full_text.find_all(['em', 'sup', 'strong', 'small', 'i', 'sub', 'button']):
+    for s in full_text.find_all('a', {'class': 'hide'}):
         # 删除防爬虫信息
-        print(str.strip(e.text) + 'deleted')
+        if s.findChild():
+            e = s.findChild()
+            noise = str.strip(e.text)
+            noise_set.add(noise)
+            print(noise + ' deleted')
+            e.decompose()
+
+    for e in full_text.find_all(['em', 'sup', 'strong', 'small', 'i', 'sub', 'button', 'b']):
+        # 删除防爬虫信息
+        noise = str.strip(e.text)
+        noise_set.add(noise)
+        print(noise + ' deleted')
         e.decompose()
 
 
-def str_insert(src: str, idx: int, val: str) -> str:
-    return src[:idx] + val + src[idx:]
-
-
-def pkulaw_text_retrieve(html_doc: str, counter: int):
+def retrieve_text(html_doc: str, counter: int):
     """
-    将北大法宝对应文章的html文档转换为 txt 文件，存入 '/result'
+    将北大法宝对应文章的html文档转换为 txt 文件，存入 '/result.txt'
 
     :param html_doc: 文档html
     :param counter: 当前计数
@@ -91,7 +107,7 @@ def pkulaw_text_retrieve(html_doc: str, counter: int):
         soup = BeautifulSoup(f.read(), features='html.parser')
 
     full_text = soup.find('div', {'class', 'fulltext'})
-    
+
     anti_anti_crawler(full_text)
 
     title_tag = full_text.find('p')
@@ -103,50 +119,37 @@ def pkulaw_text_retrieve(html_doc: str, counter: int):
     for i in info_tag:
         i.decompose()
 
-    refined_text = str.strip(full_text.text).replace(' ', '').replace('\n', '')
+    refined_text = str.strip(full_text.text).replace('\t', '').replace(' ', '').replace('\n', '')
 
-    cut_list = ['判决如下：', '附相关法律条文：']
+    refined_text = noise_deletion(refined_text)
+
+    found = False
+    cut_list = ['判决如下', '附相关法律条文', '判决结', '判决主']
     for words in cut_list:
         idx = refined_text.find(words)
         if idx < 0:
             continue
-        refined_text = str_insert(refined_text, idx + len(words), os.linesep)
+        found = True
+        refined_text = str_insert(refined_text, idx + len(words) + 1, os.linesep)
         refined_text = str_insert(refined_text, idx, os.linesep * 2)
 
     print('{}.{} retrieved'.format(counter, title) + os.linesep)
-    with open(result_folder + str(counter) + '.' + title + '.txt', 'w') as f:
+    if not os.path.exists(refined_text_path):
+        os.mkdir(refined_text_path)
+    with open(refined_text_path + '{}.{}.txt'.format(counter, title), 'w') as f:
         f.write(title + os.linesep)
         for info in info_lines:
             f.write(info)
         f.write(os.linesep)
         f.write(refined_text)
+    if not found:
+        log.append('{}.{} 审判结果未找到'.format(counter, title))
+    pickle.dump(noise_set, open(noise_path, 'wb'))
 
 
-def gov_retrieve(url: str, counter: int):
-    """
-    将中华人民共和国最高人民法院公报对应文章的文档转换为 txt 文件，存入 '/result'
-
-    :param counter: 当前计数
-    :param url: 文档链接
-    :return: null
-    """
-
-    print()
-    res = ['']
-    bs = BeautifulSoup(requests.get(url).content, features='html.parser')
-
-    c = bs.find_all('div', {'class': 'content_box'})[0]
-
-    for cp in c.find_all('p')[1:]:
-        prop = cp.get('style')
-
-        if prop is not None and prop.find('center') != -1:
-            res[-1] += cp.text.strip()
-        else:
-            res.append(cp.text)
-
-    with open(result_folder + str(counter) + '.' + res[0] + '.txt', 'w') as f:
-        f.write(os.linesep.join(res).replace(chr(0xa0), ' '))
-
-    print('[' + str(counter) + '] Source: ' + url)
-    print('Article "' + res[0] + '" has been retrieved.')
+def noise_deletion(refined_text) -> str:
+    for noise in noise_set:
+        while refined_text.find(noise) >= 0:
+            print('Log: {} deleted.'.format(noise))
+            refined_text = refined_text.replace(noise, '')
+    return refined_text
