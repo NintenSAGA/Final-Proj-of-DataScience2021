@@ -1,3 +1,2 @@
 import text_extract
-from core import crawl
-from core import clear
+from src.crawling.core.core_function import crawl, clear

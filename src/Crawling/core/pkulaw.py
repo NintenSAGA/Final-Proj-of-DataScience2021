@@ -8,7 +8,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Edge
 
-from src.crawling.common import result_folder, html_folder, html_path, log
+from src.crawling.common import result_folder, html_path, log, url_list, write, update_progress_bar
 from src.crawling.text_extract.pkulaw import import_cookies, retrieve_html_file, retrieve_text, noise_set
 
 counter = 0
@@ -16,60 +16,47 @@ counter = 0
 pkulaw_url = 'https://www.pkulaw.com/case/'
 
 
-def crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
-                 skip_url_fetch: bool = False, skip_html_retrieve: bool = False):
+def crawl_pkulaw(n: int, edge: Edge, from_n, skip_fu, skip_rhf):
     """
     利用 Selenium 扒取北大法宝的裁判文书
 
     需使用南大ip
-    :param skip_html_retrieve:
-    :param skip_url_fetch:
-    :param from_page:
     :param edge:
+    :param skip_rhf: skip retrieve html file
+    :param skip_fu: skip fetch url
+    :param from_n: 从第几份开始
+    :param n: 要扒取的文件数量
     :param n: 要扒取的文件数量
     """
     global counter
-    url_list = result_folder + '~url_list.txt'
     org_len = len(noise_set)
     print("Log: 当前噪音过滤条目{}条".format(org_len))
 
-    if not os.path.exists(url_list) or input('是否要重新获取链接？(y/n): ').startswith('y'):
-        fetch_url(n, edge, from_page)
+    if not skip_fu:
+        fetch_url(n, edge, from_n)
         import_cookies(edge.get_cookies())  # 将selenium的cookies转换给mechanicalsoup
         print('Log: 已完成cookie转换')
         print('Log: 休息十秒')
         for i in range(0, 10):
-            sys.stdout.write('\r{}'.format(10 - i))
-            sys.stdout.flush()
+            update_progress_bar(i, 10, '{}'.format(10 - i))
             time.sleep(1)
         sys.stdout.write('\r0' + os.linesep)
         sys.stdout.flush()
-
-    edge.quit()
-
-    if not os.path.exists(html_folder):
-        os.mkdir(html_folder)
-    else:
-        if len(os.listdir(html_folder)) >= n:
-            print('Log: 已存在html文档缓存，正在核验完整性......')
-            for i in range(0, n):
-                if not os.path.exists(html_path.format(i)):
-                    print('alert: 第{}项缺失！'.format(i))
-
-    skip_html_retrieve = input('是否要跳过html页面获取，直接载入已有文档？(y/n): ').startswith('y')
+        edge.quit()
 
     count = 0
     with open(url_list, 'r') as f:
         for line in f.read().split('\n'):
             if line.startswith('https'):
-                if count < from_page:
+                if count < from_n:
                     count += 1
                     continue
-                print('[{}]============================'.format(count))
-                if not skip_html_retrieve:
+                if not skip_rhf:
+                    update_progress_bar(count, n, '正在处理文档[{}]'.format(count))
                     retrieve_html_file(line, count)
                 try:
-                    retrieve_text(html_path.format(count), count)
+                    ret_msg = retrieve_text(html_path.format(count), count)
+                    update_progress_bar(count, n, ret_msg)
                 except Exception:
                     print('处理失败！\n')
                 count += 1
@@ -80,9 +67,17 @@ def crawl_pkulaw(n: int, edge: Edge, from_page: int = 0,
         l.write(os.linesep.join(log))
 
 
-def fetch_url(n: int, edge: Edge, from_page: int = 0):
+def fetch_url(n: int, edge: Edge, from_n: int = 0):
+    """
+    获取北大法宝网页上的所有url，存于 url_list 文件夹中
+
+    :param n: 文书数量
+    :param edge:
+    :param from_n:
+    :return:
+    """
     edge.get("https://www.pkulaw.com/case/")
-    n += from_page
+    n += from_n
 
     try:
         login_status = edge.find_element(By.XPATH, '/html/body/div[3]/div/div[3]/a[1]')
@@ -124,8 +119,8 @@ def fetch_url(n: int, edge: Edge, from_page: int = 0):
             else:
                 edge.find_element(By.XPATH, "//li[2]/ul/li/a/span").click()
                 time.sleep(2)
-            if '案' not in edge.find_element(By.XPATH,
-                                            '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]/b').text:
+            if edge.find_element(By.XPATH, '//*[@id="rightContent"]/div[2]/div[1]/div/div[1]/a[2]')\
+                    .text.startswith('案'):
                 continue
             break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
@@ -162,8 +157,6 @@ def fetch_url(n: int, edge: Edge, from_page: int = 0):
     # 读取每页所有条目
     count = 0
 
-    url_list = result_folder + '~url_list.txt'
-
     url_set = set()
     while count < n:
         entries = edge.find_elements(By.XPATH, '//*[@id="rightContent"]/div[3]/div/ul/li')
@@ -173,7 +166,7 @@ def fetch_url(n: int, edge: Edge, from_page: int = 0):
                 print('重复！')
                 break
             url_set.add(href)
-            print('HTML of entry[' + str(count) + '] retrieved')
+            update_progress_bar(count, n, '已获取第{}项URL'.format(count))
             count += 1
             if count == n:
                 break

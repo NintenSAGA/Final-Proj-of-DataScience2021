@@ -5,8 +5,7 @@ import bs4
 from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
-
-from src.crawling.common import html_path, noise_set, refined_text_path, log, noise_path
+from src.crawling.common import html_path, noise_set, refined_text_folder, log, noise_path, write
 from src.crawling.text_extract import str_insert
 
 browser = None
@@ -59,7 +58,7 @@ def anti_anti_crawler(full_text: bs4.Tag):
             e = s.findChild()
             noise = str.strip(e.text)
             noise_set.add(noise)
-            print(noise + ' deleted')
+            # print(noise + ' deleted')
             e.decompose()
 
     for s in full_text.find_all('a'):
@@ -68,7 +67,7 @@ def anti_anti_crawler(full_text: bs4.Tag):
             e = s.findChild()
             noise = str.strip(e.text)
             noise_set.add(noise)
-            print(noise + ' deleted')
+            # print(noise + ' deleted')
             e.decompose()
 
     for s in full_text.find_all('a', {'class': 'hide'}):
@@ -77,14 +76,14 @@ def anti_anti_crawler(full_text: bs4.Tag):
             e = s.findChild()
             noise = str.strip(e.text)
             noise_set.add(noise)
-            print(noise + ' deleted')
+            # print(noise + ' deleted')
             e.decompose()
 
     for e in full_text.find_all(['em', 'sup', 'strong', 'small', 'i', 'sub', 'button', 'b']):
         # 删除防爬虫信息
         noise = str.strip(e.text)
         noise_set.add(noise)
-        print(noise + ' deleted')
+        # print(noise + ' deleted')
         e.decompose()
 
 
@@ -97,7 +96,7 @@ def retrieve_text(html_doc: str, counter: int):
     :return:
     """
 
-    print('正在处理文档......'.format(counter, counter))
+    # print('正在处理文档......'.format(counter, counter))
 
     if not os.path.exists(html_doc):
         print('Alert 未找到{}'.format(html_doc))
@@ -133,10 +132,9 @@ def retrieve_text(html_doc: str, counter: int):
         refined_text = str_insert(refined_text, idx + len(words) + 1, os.linesep)
         refined_text = str_insert(refined_text, idx, os.linesep * 2)
 
-    print('{}.{} retrieved'.format(counter, title) + os.linesep)
-    if not os.path.exists(refined_text_path):
-        os.mkdir(refined_text_path)
-    with open(refined_text_path + '{}.{}.txt'.format(counter, title), 'w') as f:
+    if not os.path.exists(refined_text_folder):
+        os.mkdir(refined_text_folder)
+    with open(refined_text_folder + '{}.{}.txt'.format(counter, title), 'w') as f:
         f.write(title + os.linesep)
         for info in info_lines:
             f.write(info)
@@ -146,10 +144,12 @@ def retrieve_text(html_doc: str, counter: int):
         log.append('{}.{} 审判结果未找到'.format(counter, title))
     pickle.dump(noise_set, open(noise_path, 'wb'))
 
+    return '{}.{} retrieved'.format(counter, title)
+
 
 def noise_deletion(refined_text) -> str:
     for noise in noise_set:
         while refined_text.find(noise) >= 0:
-            print('Log: {} deleted.'.format(noise))
+            # print('Log: {} deleted.'.format(noise))
             refined_text = refined_text.replace(noise, '')
     return refined_text
