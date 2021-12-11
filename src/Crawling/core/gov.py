@@ -9,7 +9,7 @@ gov_url = 'http://gongbao.court.gov.cn/QueryArticle.html?title=&content=&documen
 counter = 0
 
 
-def __crawl_gov(n: int, edge: Edge):
+def crawl_gov(n: int, edge: Edge):
     """
     利用 Selenium 扒取中华人民共和国最高人民法院公报的裁判文书
     :param n: 要扒取的文件数量
