@@ -18,9 +18,9 @@ class Application(Frame):
         self.canvas.pack()
         ft0 = Font(family="微软雅黑", size=14, weight=tkinter.font.BOLD)
         Button(self.canvas, text="  爬取文书 ", bg="cadetblue", command=self.show_reptile, fg='white',
-               font=ft0, anchor='w').place(x=300, y=250)
+               font=ft0, anchor='w').place(x=185, y=125)
         Button(self.canvas, text="自动化标注", bg="cadetblue", command=self.show_another_paper, fg='white',
-               font=ft0, anchor='w').place(x=300, y=450)
+               font=ft0, anchor='w').place(x=185, y=275)
 
     def show_another_paper(self):
         another_paper.Windows(self.master)
@@ -32,7 +32,7 @@ class Application(Frame):
 if __name__ == '__main__':
     root = Tk()
     root.resizable(False, False)
-    root.geometry("750x750+300+300")
+    root.geometry("500x500+300+300")
     root.title("自动化爬取和标注")
     app = Application(master=root)
     root.mainloop()
