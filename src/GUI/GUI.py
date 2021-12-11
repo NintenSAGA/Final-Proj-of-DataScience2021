@@ -1,6 +1,8 @@
+import tkinter.font
 from tkinter import *
-# from tkinter import messagebox
 import another_paper
+import reptile
+from tkinter.font import *
 
 
 class Application(Frame):
@@ -8,28 +10,29 @@ class Application(Frame):
         super().__init__(master)
         self.master = master
         self.pack()
+        self.canvas = None
         self.create_widget()
 
     def create_widget(self):
+        self.canvas = Canvas(self.master, bg='white', width=750, height=750, highlightcolor='pink')
+        self.canvas.pack()
+        ft0 = Font(family="微软雅黑", size=14, weight=tkinter.font.BOLD)
+        Button(self.canvas, text="  爬取文书 ", bg="cadetblue", command=self.show_reptile, fg='white',
+               font=ft0, anchor='w').place(x=300, y=250)
+        Button(self.canvas, text="自动化标注", bg="cadetblue", command=self.show_another_paper, fg='white',
+               font=ft0, anchor='w').place(x=300, y=450)
 
-        # 实现多选，还没写完
-        self.check_var1 = BooleanVar()
-        self.check_var2 = BooleanVar()
-        self.check_var1.set(True)  # 预设为勾选
-        c1 = Checkbutton(self.master, text="RUN", variable=self.check_var1, height=2, width=8, anchor='w')
-        c2 = Checkbutton(self.master, text="GOOGLE", variable=self.check_var2, height=2, width=8, anchor='w')
-        c1.place(x=0, y=400)
-        c2.place(x=0, y=450)
-
-        Button(text="go", bg="cadetblue", command=self.show_single).pack()
-
-    def show_single(self):
+    def show_another_paper(self):
         another_paper.Windows(self.master)
+
+    def show_reptile(self):
+        reptile.Windows(self.master)
 
 
 if __name__ == '__main__':
     root = Tk()
-    root.geometry("500x500+200+300")
-    root.title("一个经典的GUI程序类的测试")
+    root.resizable(False, False)
+    root.geometry("750x750+300+300")
+    root.title("自动化爬取和标注")
     app = Application(master=root)
     root.mainloop()
