@@ -34,6 +34,7 @@ class Application(Frame):
     def show_single(self):
         another_paper.Windows(self.master)
 
+
 if __name__ == '__main__':
     root = Tk()
     root.geometry("1000x700+500+500")

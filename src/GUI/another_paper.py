@@ -102,5 +102,5 @@ class Windows:
             c = self.text_pad.get(1.0, END)
             f.write(c)
 
-    def test(self):  # 占位置用的
+    def test(self):  # 占位置用
         pass
