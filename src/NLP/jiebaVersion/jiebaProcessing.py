@@ -1,6 +1,9 @@
 import jieba
 import re
+import time
 import jieba.posseg as pseg
+import sys
+from NLP.get_filename import get_all
 
 # 全国法院名单.txt
 jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/全国法院名单.txt')
@@ -20,13 +23,11 @@ def get_verdict(filepath):
     """
     with open(filepath, 'r') as file:
         lines = file.read().split('\n')
-        temp = 0
         for i in range(len(lines)):
             if ("判决如下" or "判决结果" or "判决主文") in lines[i]:
-                temp = i
-                break
+                return lines[i+1]
 
-    return lines[temp+1]
+    return 'None'
 
 
 def get_danger_info(filepath):
@@ -103,7 +104,7 @@ def cal_word_frequency(filepath):
     wFfile.close()
 
 
-def get_result(wFfilepath):
+def write_result(wFfilepath, num):
     """
         计算得到结果
 
@@ -150,16 +151,15 @@ def get_result(wFfilepath):
                     if word != 're':
                         sentences.append('\n\t' + word)
 
-
-
-    with open('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/result.txt', 'w') as resultfile:
-        resultfile.write(toString(personInfo) + '\n')
-        resultfile.write(toString(area) + '\n')
-        resultfile.write(toString(case_cause) + '\n')
-        resultfile.write(toString(court) + '\n')
-        resultfile.write(toString(sentences) + '\n')
-        resultfile.write(toString(money) + '\n')
-        resultfile.write(toString(dan_message) + '\n')
+    new_file_name = '/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/result/'+str(num)+'标注.txt'
+    resultfile = open(new_file_name, 'w')
+    resultfile.write(toString(personInfo) + '\n')
+    resultfile.write(toString(area) + '\n')
+    resultfile.write(toString(case_cause) + '\n')
+    resultfile.write(toString(court) + '\n')
+    resultfile.write(toString(sentences) + '\n')
+    resultfile.write(toString(money) + '\n')
+    resultfile.write(toString(dan_message) + '\n')
 
 
 def toString(s):
@@ -167,3 +167,30 @@ def toString(s):
     for word in s:
         res += (word + ' ')
     return res
+
+
+def process_bar(num, total):
+    rate = float(num)/total
+    ratenum = int(100*rate)
+    r = '\r[{}{}]{}%'.format('*'*ratenum,' '*(100-ratenum), ratenum)
+    sys.stdout.write(r)
+    sys.stdout.flush()
+
+
+def get_result(source_text_path, num):
+    """
+        param: source_text_path:文书所在文件夹路径
+    """
+    print("Log:获取文书路径")
+    time.sleep(1)
+    filepaths = get_all(source_text_path)
+    print("Log:已获取")
+    time.sleep(1)
+    i = 0
+    print("Log:开始处理")
+    for filepath in filepaths:
+        cal_word_frequency(filepath)
+        write_result('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/wF.txt', i)
+        i += 1
+        process_bar(i, num)
+        time.sleep(0.005)
