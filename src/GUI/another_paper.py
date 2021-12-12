@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter.filedialog import *
 from tkinter.scrolledtext import *
+from tkinter.font import *
 import tkinter.ttk
 
 
@@ -63,7 +64,11 @@ class Windows:
 
         # 显示文件夹的当前位置
     def create_dire_label_and_entry(self):
-        pass
+        ft1 = Font(family="微软雅黑", size=15, weight=tkinter.font.BOLD)
+        ft2 = Font(family="微软雅黑", size=12, weight=tkinter.font.BOLD)
+        Label(self.big_canvas, text='文件夹：', font=ft1, bg='white').place(x=50, y=25)
+        Entry(self.big_canvas, borderwidth=4, width=20).place(x=125, y=30)
+        Label(self.big_canvas, text='已找到文书共xx份', font=ft2, bg='white', fg='blue').place(x=390, y=28)
 
         # 显示基本信息
     def create_tab_basic_information(self):
