@@ -11,11 +11,11 @@ from src.crawling.core import crawl_pkulaw
 
 def crawl(n, src: int = 1, from_n: int = 0,
           skip_fu: bool = None, skip_rhf: bool = None,
-          launched_by_GUI: bool = False):
+          launched_by_gui: bool = False):
     """
     利用 Selenium 扒取裁判文书
 
-    :param launched_by_GUI:
+    :param launched_by_gui:
     :param skip_rhf: skip retrieve html file
     :param skip_fu: skip fetch url
     :param from_n: 从第几份开始
@@ -25,26 +25,19 @@ def crawl(n, src: int = 1, from_n: int = 0,
 
     assert src == 0 or src == 1
 
-    common.launched_by_GUI = launched_by_GUI
+    common.launched_by_GUI = launched_by_gui
 
     # 确认路径存在
     for folder in [result_folder, html_folder, refined_text_folder]:
         if not os.path.exists(folder):
             os.mkdir(folder)
 
-    # 检查url_list是否存在
-    fu_can_skip = os.path.exists(url_list)
+    fu_can_skip, msg = check_url_list(from_n, n)
+    write_msg(msg)
 
     # 检查html文件缓存
-    rhf_can_skip: bool
-    if len(os.listdir(html_folder)) > 0:
-        rhf_can_skip = True
-        write_msg('Log: 已存在html文档缓存，正在核验完整性......')
-        for i in range(0, n):
-            if not os.path.exists(html_path.format(i)):
-                write_msg('alert: 第{}项缺失！'.format(i))
-    else:
-        rhf_can_skip = False
+    rhf_can_skip, msg = check_html_list(from_n, n)
+    write_msg(msg)
 
     # 检查输入参数合法性
     if not skip_fu and skip_rhf:
@@ -94,6 +87,49 @@ def crawl(n, src: int = 1, from_n: int = 0,
 
     if edge is not None:
         edge.quit()
+
+
+def check_html_list(from_n, n) -> (bool, str):
+    rhf_can_skip: bool
+    mis = []
+    msg: str
+    if len(os.listdir(html_folder)) > 0:
+        rhf_can_skip = True
+        for i in range(from_n, n):
+            if not os.path.exists(html_path.format(i)):
+                mis.append(i)
+    else:
+        rhf_can_skip = False
+
+    if rhf_can_skip:
+        if len(mis) == 0:
+            msg = 'Log: 存在html文档缓存，含完整{}份'.format(n)
+        else:
+            msg = 'Log: html缓存不完整，缺失如下：\n' + ','.join(map(str, mis))
+    else:
+        msg = 'Log: 不存在html缓存'
+
+    return rhf_can_skip, msg
+
+
+def check_url_list(from_n, n) -> (bool, str):
+    # 检查url_list是否存在
+    mis: int
+    msg: str
+    fu_can_skip = os.path.exists(url_list)
+    if fu_can_skip:
+        with open(url_list, 'r') as f:
+            mis = max(n - len(f.readlines()), 0)
+
+    if fu_can_skip:
+        if mis == 0:
+            msg = 'Log: 存在url_list缓存，含完整{}份'.format(n)
+        else:
+            msg = 'Log: url_list缓存不完整，缺失{}份'.format(mis)
+    else:
+        msg = 'Log: 不存在url_list缓存'
+
+    return fu_can_skip, msg
 
 
 def get_webdriver_path() -> str:
