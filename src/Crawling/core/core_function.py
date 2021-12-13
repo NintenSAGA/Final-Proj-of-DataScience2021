@@ -5,7 +5,7 @@ from selenium.webdriver import Edge
 
 from src import crawling
 from src.crawling.common import result_folder, html_folder, refined_text_folder, url_list, html_path
-from src.crawling.core import crawl_gov, crawl_pkulaw
+from src.crawling.core import crawl_pkulaw
 
 
 def crawl(n, src: int = 1, from_n: int = 0,
