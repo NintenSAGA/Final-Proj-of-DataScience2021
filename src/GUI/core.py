@@ -1,7 +1,18 @@
 from tkinter import Frame, Button, Canvas, Tk
 from tkinter.font import Font, BOLD
-import anno_page
-import crawler_page
+from src.GUI import anno_page, crawler_page
+
+app = None
+
+
+def launch():
+    global app
+    root = Tk()
+    root.resizable(False, False)
+    root.geometry("500x500+300+300")
+    root.title("自动化爬取和标注")
+    app = Application(master=root)
+    root.mainloop()
 
 
 class Application(Frame):
@@ -11,6 +22,8 @@ class Application(Frame):
         self.pack()
         self.canvas = None
         self.create_widget()
+        self.obj_anno_page = None
+        self.obj_crawler_page = None
 
     def create_widget(self):
         self.canvas = Canvas(self.master, bg='white', width=750, height=750, highlightcolor='pink')
@@ -22,16 +35,7 @@ class Application(Frame):
                font=ft0, anchor='w').place(x=185, y=275)
 
     def show_anno_page(self):
-        anno_page.Windows(self.master)
+        self.obj_anno_page = anno_page.Windows(self.master)
 
     def show_crawler_page(self):
-        crawler_page.Windows(self.master)
-
-
-if __name__ == '__main__':
-    root = Tk()
-    root.resizable(False, False)
-    root.geometry("500x500+300+300")
-    root.title("自动化爬取和标注")
-    app = Application(master=root)
-    root.mainloop()
+        self.obj_crawler_page = crawler_page.Windows(self.master)
