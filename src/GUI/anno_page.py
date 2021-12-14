@@ -20,8 +20,8 @@ class Panel:
         self.file_name = None
         self.create_text_pad()
         self.create_dire_label_and_entry()
-        self.create_tab_basic_information()
-        self.create_special_information()
+        self.create_bas_info_tabs()
+        self.create_sp_info_tabs()
 
     def create_menu(self):
         # 建立一个菜单
@@ -72,7 +72,7 @@ class Panel:
         Label(self.big_canvas, text='已找到文书共xx份', font=ft2, bg='white', fg='blue').place(x=390, y=28)
 
         # 显示基本信息
-    def create_tab_basic_information(self):
+    def create_bas_info_tabs(self):
         tab_control = tkinter.ttk.Notebook(self.big_canvas, height=200, width=400)
 
         label_basic_information = Label(tab_control, text='基本信息', fg='blue')
@@ -85,10 +85,10 @@ class Panel:
         tab_control.add(second_tab, text='法院')
 
         tab_control.place(x=700, y=50)
-        self.create_basic_tab_information(first_tab)
+        self.insert_bas_info(first_tab)
 
         # 给基本信息中的tab进行信息填入
-    def create_basic_tab_information(self, first_tabel):
+    def insert_bas_info(self, first_tabel):
         self.check_var3 = BooleanVar()
         self.check_var4 = BooleanVar()
         self.check_var3.set(True)  # 预设为勾选
@@ -98,7 +98,7 @@ class Panel:
         check_button2.place(x=0, y=40)
 
         # 特殊信息
-    def create_special_information(self):
+    def create_sp_info_tabs(self):
         tab_control_special = tkinter.ttk.Notebook(self.big_canvas, height=200, width=400)
 
         label_special_information = Label(tab_control_special, text='特殊信息', fg='blue')
@@ -108,10 +108,10 @@ class Panel:
         tab_control_special.add(first_tab, text='血液酒精浓度')
 
         tab_control_special.place(x=700, y=350)
-        self.create_special_tab_information(first_tab)
+        self.insert_sp_info(first_tab)
 
         # 特殊信息tab填充
-    def create_special_tab_information(self, first_tabel):
+    def insert_sp_info(self, first_tabel):
         self.check_var5 = BooleanVar()
         self.check_var6 = BooleanVar()
         self.check_var5.set(True)  # 预设为勾选

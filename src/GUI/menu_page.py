@@ -20,16 +20,16 @@ class Application(Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
-        self.canvas = Canvas(self.master, bg='white', width=750, height=750, highlightcolor='pink')
-        self.canvas.pack()
         self.create_bt()
         self.obj_anno_page = None
         self.obj_crawler_page = None
 
     def create_bt(self):
         ft0 = get_ft(14)
-        Button(self.canvas, text="  爬取文书 ", bg="cadetblue", command=self.show_crawler_page, fg='black', font=ft0).place(x=185, y=125)
-        Button(self.canvas, text="自动化标注", bg="cadetblue", command=self.show_anno_page, fg='black', font=ft0).place(x=185, y=275)
+        Button(self.master, text="  爬取文书 ", bg="cadetblue", command=self.show_crawler_page, fg='black', font=ft0)\
+            .place(relx=.5, rely=.4, anchor="center")
+        Button(self.master, text="自动化标注", bg="cadetblue", command=self.show_anno_page, fg='black', font=ft0)\
+            .place(relx=.5, rely=.5, anchor="center")
 
     def show_anno_page(self):
         self.obj_anno_page = anno_page.Panel(self.master)
