@@ -10,7 +10,7 @@ def launch():
     global app
     root = Tk()
     root.resizable(False, False)
-    root.geometry("500x500+300+300")
+    root.geometry("400x500+300+300")
     root.title("自动化爬取和标注")
     app = Application(master=root)
     root.mainloop()
