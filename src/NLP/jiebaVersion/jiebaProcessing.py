@@ -56,7 +56,7 @@ def process_property(filePath):
 
     with open(filePath, 'w+') as file:
         for line in lineList:
-            file.write(''.join(line+' cg'+'\n'))
+            file.write(''.join(line+'000'+'\n'))
 
     file.close()
 
@@ -108,14 +108,15 @@ def write_result(wFfilepath, num):
     """
         计算得到结果
 
-        :param wFfilepath: 词频文本目录
+        :param wFfilepath: 词频文本路径
         :return: 得到文本分析结果
     """
     # 个人基本信息
     personInfo = ["姓名："]
 
     # 地区
-    area = ["地区:"]
+    province = ["省份："]
+    city = ["城市："]
 
     # 罪名
     case_cause = ["罪名："]
@@ -127,10 +128,11 @@ def write_result(wFfilepath, num):
     sentences = ["判决结果："]
 
     # 涉案金额
-    money = ["涉案金额："]
+    money = ["判处罚金："]
 
     # 危险驾驶相关信息
-    dan_message = ["危险驾驶："]
+    dan_message = ["酒精含量："]
+
     with open(wFfilepath, 'r+') as wFfile:
         firstLine = wFfile.readline()
         dan_message.append(firstLine.split('/ac')[0].strip('(\''))
@@ -138,31 +140,42 @@ def write_result(wFfilepath, num):
             line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", line)
             line = line.strip().replace('  ', ' ')
             words = line.split(" ")
-            if words[1] == 'nr':
+            if words[len(words)-1] == 're':
+                for word in words:
+                    if word != 're':
+                        sentences.append('\n\t' + word)
+                    if re.search('(罚金|人民币).*元', word):
+                        money.append(str(re.search('(罚金|人民币).*元', word).group(0)))
+                        sentences.append('\n\t' + word)
+            elif words[1] == 'nr':
                 personInfo.append(words[0])
             elif words[1] == 'ct':
                 court.append(words[0])
             elif words[1] == 'ns':
-                area.append(words[0])
-            elif words[1] == 'cg':
-                case_cause.append(words[0])
-            elif words[len(words)-1] == 're':
-                for word in words:
-                    if word != 're':
-                        sentences.append('\n\t' + word)
+                if words[0].endswith("省") or words[0].endswith("自治区"):
+                    province.append(words[0])
+                elif words[0].endswith("市"):
+                    city.append(words[0])
+            elif words[0].endswith("罪"):
+                if words[1] == 'cg':
+                    case_cause.append(words[0])
+                elif len(words[0]) == 3:
+                    case_cause.append(words[0])
 
-    new_file_name = '/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/result/'+str(num)+'标注.txt'
+
+    new_file_name = '/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/~result/'+str(num)+'标注.txt'
     resultfile = open(new_file_name, 'w')
-    resultfile.write(toString(personInfo) + '\n')
-    resultfile.write(toString(area) + '\n')
-    resultfile.write(toString(case_cause) + '\n')
-    resultfile.write(toString(court) + '\n')
-    resultfile.write(toString(sentences) + '\n')
-    resultfile.write(toString(money) + '\n')
-    resultfile.write(toString(dan_message) + '\n')
+    resultfile.write(to_string(personInfo) + '\n')
+    resultfile.write(to_string(province) + '\n')
+    resultfile.write(to_string(city) + '\n')
+    resultfile.write(to_string(case_cause) + '\n')
+    resultfile.write(to_string(court) + '\n')
+    resultfile.write(to_string(sentences) + '\n')
+    resultfile.write(to_string(money) + '\n')
+    resultfile.write(to_string(dan_message) + '\n')
 
 
-def toString(s):
+def to_string(s):
     res = ""
     for word in s:
         res += (word + ' ')
@@ -188,9 +201,10 @@ def get_result(source_text_path, num):
     time.sleep(1)
     i = 0
     print("Log:开始处理")
-    for filepath in filepaths:
-        cal_word_frequency(filepath)
-        write_result('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/wF.txt', i)
+    for j in range(min(num, len(filepaths))):
+        cal_word_frequency(filepaths[j])
+        write_result('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/wF.txt', j)
         i += 1
         process_bar(i, num)
         time.sleep(0.005)
+
