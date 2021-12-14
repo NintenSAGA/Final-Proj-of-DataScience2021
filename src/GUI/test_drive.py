@@ -1,4 +1,4 @@
-from src.GUI import core
+from src.GUI import menu_page
 
 if __name__ == '__main__':
-    core.launch()
+    menu_page.launch()

@@ -2,10 +2,11 @@ from tkinter import *
 from tkinter.filedialog import *
 from tkinter.scrolledtext import *
 from tkinter.font import *
+from src.GUI.common import get_ft
 import tkinter.ttk
 
 
-class Windows:
+class Panel:
     def __init__(self, parent):
         self.root = Toplevel()
         self.parent = parent
@@ -29,16 +30,15 @@ class Windows:
         menu_file = Menu(menu_bar)
         menu_edit = Menu(menu_bar)
         menu_help = Menu(menu_bar)
-        # 将一级菜单加入菜单中
+        # 加入一级菜单
         menu_bar.add_cascade(label="文件(F)", menu=menu_file)
         menu_bar.add_cascade(label="编辑(E)", menu=menu_edit)
         menu_bar.add_cascade(label="帮助(H)", menu=menu_help)
-        # 给一级菜单加入实现、功能
+        # 加入二级菜单
         menu_file.add_command(label="新建", accelerator="ctrl+n", command=self.new_file)
         menu_file.add_command(label="打开", accelerator="ctrl+o", command=self.open_file)
         menu_file.add_command(label="保存", accelerator="ctrl+s", command=self.save_file)
-        menu_file.add_separator()
-        menu_file.add_command(label="退出", accelerator="ctrl+q", command=self.root.quit)
+        # menu_file.add_separator()
         # 向root中加入menu
         self.root["menu"] = menu_bar
         # 快捷键设置
@@ -59,14 +59,15 @@ class Windows:
 
         # 文本框设置，带滚动条的那种
     def create_text_pad(self):
-        self.text_pad = ScrolledText(self.big_canvas, width=65, height=35, bg='white')
+        self.text_pad = ScrolledText(self.big_canvas, width=65, height=35, bg='white',
+                                     highlightcolor='black', highlightbackground='black')
         self.text_pad.place(x=50, y=135)
 
         # 显示文件夹的当前位置
     def create_dire_label_and_entry(self):
-        ft1 = Font(family="微软雅黑", size=15, weight=tkinter.font.BOLD)
-        ft2 = Font(family="微软雅黑", size=12, weight=tkinter.font.BOLD)
-        Label(self.big_canvas, text='文件夹：', font=ft1, bg='white').place(x=50, y=25)
+        ft1 = get_ft(14)
+        ft2 = get_ft(12)
+        Label(self.big_canvas, text='文件夹：', font=ft1, bg='white').place(x=50, y=30)
         Entry(self.big_canvas, borderwidth=4, width=20).place(x=125, y=30)
         Label(self.big_canvas, text='已找到文书共xx份', font=ft2, bg='white', fg='blue').place(x=390, y=28)
 
