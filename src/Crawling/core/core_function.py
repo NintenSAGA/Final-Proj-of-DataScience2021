@@ -5,39 +5,50 @@ from selenium.webdriver import Edge
 
 from src import crawling
 from src.crawling import common
-from src.crawling.common import result_folder, html_folder, refined_text_folder, url_list, html_path, write_msg
+from src.crawling.common import result_folder, html_folder, refined_text_folder, html_path, write_msg
 from src.crawling.core import crawl_pkulaw
 
+url_list = common.url_list
 
-def crawl(n, src: int = 1, from_n: int = 0,
+
+def crawl(n, src: int = 1, year: int = 2021, from_n: int = 0,
           skip_fu: bool = None, skip_rhf: bool = None,
-          launched_by_gui: bool = False):
+          launched_by_gui: bool = False, debug_mode=False):
     """
     利用 Selenium 扒取裁判文书
 
+    :param debug_mode:
+    :param year: 年份
     :param launched_by_gui:
     :param skip_rhf: skip retrieve html file
     :param skip_fu: skip fetch url
     :param from_n: 从第几份开始
     :param n: 要扒取的文件数量
-    :param src: 文献来源，0 - 中华人民共和国最高人民法院公报, 1 - 北大法宝
+    :param src: 文献来源，1 - 北大法宝
     """
 
     assert src == 0 or src == 1
 
+    global url_list
+
     common.launched_by_GUI = launched_by_gui
+    url_list = common.url_list.format(year)
 
     # 确认路径存在
     for folder in [result_folder, html_folder, refined_text_folder]:
         if not os.path.exists(folder):
             os.mkdir(folder)
 
-    fu_can_skip, msg = check_url_list(from_n, n)
+    fu_can_skip, msg = check_url_list(from_n, n, year)
     write_msg(msg)
 
     # 检查html文件缓存
-    rhf_can_skip, msg = check_html_list(from_n, n)
+    rhf_can_skip, msg = check_html_list(from_n, n, year)
     write_msg(msg)
+
+    if not launched_by_gui and skip_fu is None and skip_rhf is None:
+        skip_fu = input('是否跳过fetch_url: ').startswith('y')
+        skip_rhf = input('是否跳过retrieve_html_file: ').startswith('y')
 
     # 检查输入参数合法性
     if not skip_fu and skip_rhf:
@@ -82,52 +93,52 @@ def crawl(n, src: int = 1, from_n: int = 0,
         write_msg('Error: 本源暂停使用')
         return
         # crawl_gov(n, edge)
-    elif src == 1:
-        crawl_pkulaw(n, edge, from_n, skip_fu, skip_rhf)
+
+    crawl_pkulaw(n, edge, from_n, skip_fu, skip_rhf, year, debug_mode)
 
     if edge is not None:
         edge.quit()
 
 
-def check_html_list(from_n, n) -> (bool, str):
+def check_html_list(from_n, n, year=2021) -> (bool, str):
     rhf_can_skip: bool
-    mis = []
+    existed = 0
     msg: str
     if len(os.listdir(html_folder)) > 0:
-        rhf_can_skip = True
-        for i in range(from_n, n):
-            if not os.path.exists(html_path.format(i)):
-                mis.append(i)
-    else:
-        rhf_can_skip = False
+        for file in os.listdir(html_folder):
+            if file.startswith(str(year)):
+                existed += 1
 
-    if rhf_can_skip:
-        if len(mis) == 0:
+    if existed != 0:
+        rhf_can_skip = True
+        if existed >= n:
             msg = 'Log: 存在html文档缓存，含完整{}份'.format(n)
         else:
-            msg = 'Log: html缓存不完整，缺失如下：\n' + ','.join(map(str, mis))
+            msg = 'Log: html缓存不完整，缺失{}份'.format(n - existed)
     else:
+        rhf_can_skip = False
         msg = 'Log: 不存在html缓存'
 
     return rhf_can_skip, msg
 
 
-def check_url_list(from_n, n) -> (bool, str):
+def check_url_list(from_n, n, year=2021) -> (bool, str):
     # 检查url_list是否存在
     mis: int
+    existed = 0
     msg: str
     fu_can_skip = os.path.exists(url_list)
     if fu_can_skip:
         with open(url_list, 'r') as f:
-            mis = max(n - len(f.readlines()), 0)
-
-    if fu_can_skip:
+            for _ in f.readlines():
+                existed += 1
+        mis = max(0, n - existed)
         if mis == 0:
             msg = 'Log: 存在url_list缓存，含完整{}份'.format(n)
         else:
             msg = 'Log: url_list缓存不完整，缺失{}份'.format(mis)
     else:
-        msg = 'Log: 不存在url_list缓存'
+        msg = 'Log: 不存在{}缓存'.format(url_list)
 
     return fu_can_skip, msg
 

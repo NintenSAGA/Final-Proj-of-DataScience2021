@@ -5,6 +5,7 @@ import bs4
 from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
+from src.crawling import common
 from src.crawling.common import html_path, noise_set, refined_text_folder, log, noise_path, write
 from src.crawling.text_extract import str_insert
 
@@ -26,12 +27,12 @@ def import_cookies(cookies: list[dict]):
         browser.session.cookies.update(c)
 
 
-def retrieve_html_file(url: str, counter: int):
+def retrieve_html_file(url: str, name):
     """
     将北大法宝对应文章的文档转换为 html 文件，存入 '/result.txt/~html'
 
     :param url: 文档链接
-    :param counter: 当前计数
+    :param name: 当前计数
     :return:
     """
     global browser
@@ -41,7 +42,7 @@ def retrieve_html_file(url: str, counter: int):
 
     browser.open(url)
 
-    with open(html_path.format(counter), 'w') as f:
+    with open(html_path.format(name), 'w') as f:
         f.write(browser.page.prettify())
 
 
@@ -87,10 +88,11 @@ def anti_anti_crawler(full_text: bs4.Tag):
         e.decompose()
 
 
-def retrieve_text(html_doc: str, counter: int):
+def retrieve_text(html_doc: str, name: str, counter: int):
     """
     将北大法宝对应文章的html文档转换为 txt 文件，存入 '/result.txt'
 
+    :param name:
     :param html_doc: 文档html
     :param counter: 当前计数
     :return:
@@ -110,7 +112,7 @@ def retrieve_text(html_doc: str, counter: int):
     anti_anti_crawler(full_text)
 
     title_tag = full_text.find('p')
-    title = str.strip(title_tag.text)
+    title = name.split('_')[-1]
     title_tag.decompose()
 
     info_tag = full_text.find_all('div')
@@ -134,7 +136,7 @@ def retrieve_text(html_doc: str, counter: int):
 
     if not os.path.exists(refined_text_folder):
         os.mkdir(refined_text_folder)
-    with open(refined_text_folder + '{}.{}.txt'.format(counter, title), 'w') as f:
+    with open(refined_text_folder + '{}.txt'.format(name), 'w') as f:
         f.write(title + os.linesep)
         for info in info_lines:
             f.write(info)
@@ -144,12 +146,12 @@ def retrieve_text(html_doc: str, counter: int):
         log.append('{}.{} 审判结果未找到'.format(counter, title))
     pickle.dump(noise_set, open(noise_path, 'wb'))
 
-    return '{}.{} retrieved'.format(counter, title)
+    return '{} retrieved'.format(name)
 
 
 def noise_deletion(refined_text) -> str:
     for noise in noise_set:
-        while refined_text.find(noise) >= 0:
+        while refined_text.find(noise) > 0:
             # print('Log: {} deleted.'.format(noise))
             refined_text = refined_text.replace(noise, '')
     return refined_text

@@ -11,7 +11,7 @@ refined_text_folder = result_folder + '~refined_text/'
 
 html_path = html_folder + '{}.html'
 noise_path = result_folder + 'noise_set.pkl'
-url_list = result_folder + '~url_list.txt'
+url_list = result_folder + '~{}_url_list.txt'
 
 noise_set = pickle.load(open(noise_path, 'rb'))
 log = []

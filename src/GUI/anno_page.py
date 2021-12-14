@@ -124,7 +124,7 @@ class Panel:
             menu.add_command(label=file, command=lambda value=i: self.menu_cmd(value))
 
         self.menu_cmd(0)
-        
+
     def menu_cmd(self, idx):
         self.idx = idx
         self.file_name.set(self.file_list[self.idx])
@@ -134,9 +134,6 @@ class Panel:
                                       highlightcolor='black', highlightbackground='black')
         self.text_area.grid(row=3, column=0, sticky='w')
         common.text_pad = self.text_area
-
-
-
 
     def build_right_frame(self, frame):
         pass
