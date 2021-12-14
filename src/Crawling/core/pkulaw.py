@@ -8,7 +8,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver import Edge
 
-from src.crawling.common import result_folder, html_path, log, url_list, write, update_progress_bar
+from src.crawling.common import result_folder, html_path, log, url_list, write, update_progress_bar, write_msg
 from src.crawling.text_extract.pkulaw import import_cookies, retrieve_html_file, retrieve_text, noise_set
 
 counter = 0
@@ -30,13 +30,13 @@ def crawl_pkulaw(n: int, edge: Edge, from_n, skip_fu, skip_rhf):
     """
     global counter
     org_len = len(noise_set)
-    print("Log: 当前噪音过滤条目{}条".format(org_len))
+    write_msg("Log: 当前噪音过滤条目{}条".format(org_len))
 
     if not skip_fu:
         fetch_url(n, edge, from_n)
         import_cookies(edge.get_cookies())  # 将selenium的cookies转换给mechanicalsoup
-        print('Log: 已完成cookie转换')
-        print('Log: 休息十秒')
+        write_msg('Log: 已完成cookie转换')
+        write_msg('Log: 休息十秒')
         for i in range(0, 10):
             update_progress_bar(i, 10, '{}'.format(10 - i))
             time.sleep(1)
@@ -58,7 +58,7 @@ def crawl_pkulaw(n: int, edge: Edge, from_n, skip_fu, skip_rhf):
                     ret_msg = retrieve_text(html_path.format(count), count)
                     update_progress_bar(count, n, ret_msg)
                 except Exception:
-                    print('处理失败！\n')
+                    write_msg('处理失败！\n')
                 count += 1
 
     if len(noise_set) != org_len:
@@ -84,15 +84,15 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0):
         if not login_status.text == '南京大学':
             raise WebDriverException
     except WebDriverException:
-        print('登录情况异常，请使用南大网登录或手动登录')
+        write_msg('登录情况异常，请使用南大网登录或手动登录')
         input('解决后输入任意字符：')
 
-    print('Log: 正在筛选条件')
+    write_msg('Log: 正在筛选条件')
 
     time.sleep(2)
     # 选择普通案例
     edge.find_element(By.XPATH, "//li[9]/a/span").click()
-    print('Log: 已选择普通案例')
+    write_msg('Log: 已选择普通案例')
 
     time.sleep(2)
     while True:
@@ -106,13 +106,13 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0):
                 break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
             continue
-    print('Log: 已选择判决书')
+    write_msg('Log: 已选择判决书')
 
     edge.set_window_position(0, 0)
     time.sleep(2)
     while True:
         try:
-            print('Log: 正在尝试选择刑事一审......')
+            write_msg('Log: 正在尝试选择刑事一审......')
             if edge.find_element(By.XPATH, '//*[@id="CaseClassport_9_switch"]').get_attribute('class').endswith(
                     'close'):
                 edge.find_element(By.XPATH, "//div[4]/div/ul/li[2]/span").click()
@@ -125,7 +125,7 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0):
             break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
             continue
-    print('Log: 已选择刑事一审')
+    write_msg('Log: 已选择刑事一审')
 
     edge.set_window_position(-edge.get_window_size()['width'], 0)
 
@@ -134,7 +134,7 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0):
     for i in range(0, 50):
         try:
             # 悬浮每页显示条目
-            print('Log: 正在尝试选择每页100条......')
+            write_msg('Log: 正在尝试选择每页100条......')
             element = edge.find_element(By.CSS_SELECTOR, ".articleSelect:nth-child(1) h4")
             actions = ActionChains(edge)
             actions.move_to_element(element).perform()
@@ -145,12 +145,12 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0):
         manual = False
         break
     if manual:
-        print('alert: 无法选中，请尝试手动开启每页100条')
+        write_msg('alert: 无法选中，请尝试手动开启每页100条')
         time.sleep(2)
         edge.set_window_position(0, 0)
         input('完成手动操作后输入任意键：')
         edge.set_window_position(-edge.get_window_size()['width'], 0)
-    print('Log: 已选择每页100条')
+    write_msg('Log: 已选择每页100条')
 
     time.sleep(2)
 
@@ -163,7 +163,7 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0):
         for e in entries:
             href = e.find_element(By.XPATH, './/div/div/h4/a').get_attribute('href')
             if href in url_set:
-                print('重复！')
+                write_msg('重复！')
                 break
             url_set.add(href)
             update_progress_bar(count, n, '已获取第{}项URL'.format(count))
@@ -176,11 +176,11 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0):
                     edge.find_element(By.XPATH, '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li[8]/a').click()  # 翻页
                 except WebDriverException:
                     edge.set_window_position(0, 0)
-                    print('Log: 疑似出现验证码，请手动操作')
+                    write_msg('Log: 疑似出现验证码，请手动操作')
                     time.sleep(0.5)
                     continue
                 break
             time.sleep(2)
-    print('Log: 所有条目的链接扒取完毕')
+    write_msg('Log: 所有条目的链接扒取完毕')
     with open(url_list, 'w') as f:
         f.write('\n'.join(url_set))

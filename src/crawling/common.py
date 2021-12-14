@@ -1,8 +1,9 @@
 import math
+import os
 import pickle
-import sys
 
 import src
+from src.GUI.common import write_text
 
 result_folder = src.__path__[0] + '/crawling/results/'
 html_folder = result_folder + '~html/'
@@ -19,10 +20,18 @@ progress_bar = '\r[{}] {}'
 pb_width = 50
 pb_l_sign = '#'
 pb_r_sign = '-'
+launched_by_GUI = False
 
 
 def write(text: str):
-    print(text, end='')
+    if launched_by_GUI:
+        write_text(text.replace('\r', '').replace(' ', os.linesep))
+    else:
+        print(text, end='')
+
+
+def write_msg(msg: str):
+    write(msg + os.linesep)
 
 
 def update_progress_bar(progress: int, dest: int, anno: str):
