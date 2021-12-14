@@ -1,150 +1,160 @@
-from tkinter import *
-from tkinter.filedialog import *
-from tkinter.scrolledtext import *
-from tkinter.font import *
-from src.GUI.common import get_ft
-import tkinter.ttk
+import tkinter
+
+from src.crawling.common import refined_text_folder, result_folder
+from src.GUI.common import get_ft, write_text
+from src.GUI import common
+from tkinter import Toplevel, BooleanVar, Button, Frame, Label, Entry, Menubutton, OptionMenu
+from tkinter import StringVar
+from tkinter.filedialog import askdirectory
+from tkinter.scrolledtext import ScrolledText
+import os
+from tkinter.ttk import Notebook, Separator
 
 
 class Panel:
-    def __init__(self, parent):
-        self.root = Toplevel()
+    def __init__(self, parent, from_panel):
+        self.from_panel = from_panel
+        self.root = parent
         self.parent = parent
-        self.root.geometry("%dx%d" % (1200, 700))  # 窗体尺寸
+        self.root.geometry("%dx%d" % (800, 500))  # 窗体尺寸
         self.root.title("自动化爬取和标注")  # 窗体标题
         self.root.resizable(False, False)  # 窗口大小不可变
-        self.big_canvas = None
-        self.text_pad = None
-        self.create_menu()
-        self.create_canvas()
-        self.file_name = None
-        self.create_text_pad()
-        self.create_dire_label_and_entry()
-        self.create_bas_info_tabs()
-        self.create_sp_info_tabs()
 
-    def create_menu(self):
-        # 建立一个菜单
-        menu_bar = Menu(self.root)
-        # 建立一级菜单
-        menu_file = Menu(menu_bar)
-        menu_edit = Menu(menu_bar)
-        menu_help = Menu(menu_bar)
-        # 加入一级菜单
-        menu_bar.add_cascade(label="文件(F)", menu=menu_file)
-        menu_bar.add_cascade(label="编辑(E)", menu=menu_edit)
-        menu_bar.add_cascade(label="帮助(H)", menu=menu_help)
-        # 加入二级菜单
-        menu_file.add_command(label="新建", accelerator="ctrl+n", command=self.new_file)
-        menu_file.add_command(label="打开", accelerator="ctrl+o", command=self.open_file)
-        menu_file.add_command(label="保存", accelerator="ctrl+s", command=self.save_file)
-        # menu_file.add_separator()
-        # 向root中加入menu
-        self.root["menu"] = menu_bar
-        # 快捷键设置
-        self.root.bind("<Control-n>", lambda event: self.new_file())
-        self.root.bind("<Control-o>", lambda event: self.open_file())
-        self.root.bind("<Control-s>", lambda event: self.save_file())
-        self.root.bind("<Control-q>", lambda event: self.root.quit())
-        # 右键跟随菜单设置
-        self.context_menu = Menu(self.root)
-        self.context_menu.add_command(label="别点了，没用的", command=self.test)
-        self.root.bind("<Button-3>", self.create_context_menu)
+        self.frame = Frame(self.root)
 
-        # 画布填充（其实是为了实现分割线）
-    def create_canvas(self):
-        self.big_canvas = Canvas(self.root, bg='white', width=1200, height=700, highlightcolor='pink')
-        self.big_canvas.create_line(600, 25, 600, 675)
-        self.big_canvas.pack()
+        self.left_frame = Frame(self.frame)
+        self.folder_path = None                             # 文件夹目录, StrVal
+        self.folder_check_label = None                      # 文件夹监测信息，Label
+        self.dropdown = None                                # 下拉菜单, OptionMenu
+        self.file_list = ['']                               # 文书列表
+        self.idx = 0                                        # 当前位置
+        self.file_name = None                               # 文件名，StrVal
+        self.text_area = None                               # 划动文本框，ScrolledText
+        self.cur_text = ''                                  # 当前文本框内文字
+        self.build_left_frame(self.left_frame)
+        self.left_frame.grid(row=0, column=0, sticky='w')
 
-        # 文本框设置，带滚动条的那种
-    def create_text_pad(self):
-        self.text_pad = ScrolledText(self.big_canvas, width=65, height=35, bg='white',
-                                     highlightcolor='black', highlightbackground='black')
-        self.text_pad.place(x=50, y=135)
+        self.right_frame = Frame(self.frame)
+        self.build_right_frame(self.right_frame)
+        self.right_frame.grid(row=0, column=1, sticky='e')
 
-        # 显示文件夹的当前位置
-    def create_dire_label_and_entry(self):
-        ft1 = get_ft(14)
-        ft2 = get_ft(12)
-        Label(self.big_canvas, text='文件夹：', font=ft1, bg='white').place(x=50, y=30)
-        Entry(self.big_canvas, borderwidth=4, width=20).place(x=125, y=30)
-        Label(self.big_canvas, text='已找到文书共xx份', font=ft2, bg='white', fg='blue').place(x=390, y=28)
+        Button(self.frame, text='返回', command=lambda: self.exit()).grid(row=1, column=0, sticky='w')
 
-        # 显示基本信息
-    def create_bas_info_tabs(self):
-        tab_control = tkinter.ttk.Notebook(self.big_canvas, height=200, width=400)
+        self.frame.pack()
 
-        label_basic_information = Label(tab_control, text='基本信息', fg='blue')
-        label_basic_information.place(x=325, y=0)
+    def exit(self):
+        self.frame.destroy()
+        self.from_panel.build()
 
-        first_tab = tkinter.ttk.Frame(tab_control)
-        tab_control.add(first_tab, text='姓名')
+    def build_left_frame(self, frame):
+        self.build_text_area(frame)
+        self.build_drop_down_opt(frame)
+        self.build_src_folder_opt(frame)
+        Label(frame, text=' ').grid(row=2, column=0, sticky='w')
 
-        second_tab = tkinter.ttk.Frame(tab_control)
-        tab_control.add(second_tab, text='法院')
+    def build_src_folder_opt(self, frame):
+        upper_frame = Frame(frame)
 
-        tab_control.place(x=700, y=50)
-        self.insert_bas_info(first_tab)
+        self.folder_path = StringVar()
+        self.folder_check_label = Label(upper_frame)
 
-        # 给基本信息中的tab进行信息填入
-    def insert_bas_info(self, first_tabel):
-        self.check_var3 = BooleanVar()
-        self.check_var4 = BooleanVar()
-        self.check_var3.set(True)  # 预设为勾选
-        check_button1 = Checkbutton(first_tabel, text="run", variable=self.check_var3, anchor='w', padx=10, pady=10)
-        check_button2 = Checkbutton(first_tabel, text="google", variable=self.check_var4, anchor='w', padx=10, pady=10)
-        check_button1.place(x=0, y=0)
-        check_button2.place(x=0, y=40)
+        Label(upper_frame, text='文件夹目录：', font=get_ft(14), background='white').pack(side=tkinter.LEFT)
 
-        # 特殊信息
-    def create_sp_info_tabs(self):
-        tab_control_special = tkinter.ttk.Notebook(self.big_canvas, height=200, width=400)
+        entry = Entry(upper_frame, width=10, textvariable=self.folder_path)
+        entry.pack(side=tkinter.LEFT)
 
-        label_special_information = Label(tab_control_special, text='特殊信息', fg='blue')
-        label_special_information.place(x=325, y=0)
+        bt = Button(upper_frame, text='选择文件夹', command=lambda: self.select_folder(entry))
+        bt.pack(side=tkinter.LEFT)
 
-        first_tab = tkinter.ttk.Frame(tab_control_special)
-        tab_control_special.add(first_tab, text='血液酒精浓度')
+        self.folder_check_label.pack(side=tkinter.LEFT)
 
-        tab_control_special.place(x=700, y=350)
-        self.insert_sp_info(first_tab)
+        self.folder_path.trace('w', lambda *arg: self.folder_check())
+        self.folder_path.set(value=refined_text_folder)
 
-        # 特殊信息tab填充
-    def insert_sp_info(self, first_tabel):
-        self.check_var5 = BooleanVar()
-        self.check_var6 = BooleanVar()
-        self.check_var5.set(True)  # 预设为勾选
-        check_button1 = Checkbutton(first_tabel, text="run", variable=self.check_var5, anchor='w', padx=10, pady=10)
-        check_button2 = Checkbutton(first_tabel, text="google", variable=self.check_var6, anchor='w', padx=10, pady=10)
-        check_button1.place(x=0, y=0)
-        check_button2.place(x=0, y=40)
+        entry.xview('end')
+        upper_frame.grid(row=0, column=0, sticky='w')
 
-        # 实现右键菜单的跟随
-    def create_context_menu(self, event):
-        self.context_menu.post(event.x_root, event.y_root)
+    def folder_check(self):
+        n = check_file_num(self.folder_path.get())
+        msg: str
+        color: str
 
-    def open_file(self):
-        self.text_pad.delete('1.0', 'end')
-        # 避免编码错误，所以偶尔会需要打开两次
-        try:
-            with open(askopenfilename()) as f:
-                self.text_pad.insert(INSERT, f.read())
-                self.file_name = f.name
-        except UnicodeDecodeError:
-            with open(askopenfilename(), encoding='utf-8') as f:
-                self.text_pad.insert(INSERT, f.read())
-                self.file_name = f.name
+        if n == -1:
+            msg = '该目录不含可读文件'
+            color = 'red'
+            self.update_om([''])
+        else:
+            msg = '该目录下共有文书{}份'.format(n)
+            color = 'blue'
+            self.update_om(get_files_in_folder(self.folder_path.get()))
 
-    def new_file(self):
-        self.file_name = asksaveasfilename(title="另存为", initialfile="未命名.txt", filetypes=[("文本文档", "*.txt")],
-                                           defaultextension=".txt")
-        self.save_file()
+        self.folder_check_label.config(text=msg, fg=color)
 
-    def save_file(self):
-        with open(self.file_name, "w") as f:
-            c = self.text_pad.get(1.0, END)
-            f.write(c)
+    def select_folder(self, entry):
+        self.folder_path.set(askdirectory(initialdir=result_folder))
+        entry.xview('end')
 
-    def test(self):  # 占位置用
+    def build_drop_down_opt(self, frame):
+        middle_frame = Frame(frame)
+
+        self.file_name = StringVar(value='')
+        self.dropdown = OptionMenu(middle_frame, self.file_name, *self.file_list)
+        self.dropdown.pack()
+
+        self.file_name.trace('w', lambda *args: self.show_text())
+
+        middle_frame.grid(row=1, column=0, sticky='w')
+
+    def show_text(self):
+        if self.file_name.get() == '':
+            return
+        full_path = self.folder_path.get() + self.file_name.get()
+
+        with open(full_path, 'r') as f:
+            self.cur_text = f.read()
+
+        write_text(self.cur_text)
+        self.text_area.yview('0.0')
+
+    def update_om(self, file_list: []):
+        self.file_list = file_list
+        menu = self.dropdown['menu']
+        menu.delete(0, "end")
+        for i, file in enumerate(self.file_list):
+            menu.add_command(label=file, command=lambda value=i: self.menu_cmd(value))
+
+        self.menu_cmd(0)
+        
+    def menu_cmd(self, idx):
+        self.idx = idx
+        self.file_name.set(self.file_list[self.idx])
+
+    def build_text_area(self, frame):
+        self.text_area = ScrolledText(frame, width=60, height=20, bg='white',
+                                      highlightcolor='black', highlightbackground='black')
+        self.text_area.grid(row=3, column=0, sticky='w')
+        common.text_pad = self.text_area
+
+
+
+
+    def build_right_frame(self, frame):
         pass
+
+
+def get_files_in_folder(folder: str) -> list:
+    try:
+        return sorted(filter(lambda x: x.endswith('.txt'), os.listdir(folder)), key=lambda x: int(x.split('.')[0]))
+    except (ValueError, TypeError):
+        return sorted(filter(lambda x: x.endswith('.txt'), os.listdir(folder)))
+
+
+def check_file_num(folder_path) -> int:
+    if not os.path.exists(folder_path):
+        return -1
+    count = 0
+    for file in os.listdir(folder_path):
+        if file.endswith('.txt'):
+            count += 1
+    return count
+

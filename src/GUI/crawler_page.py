@@ -31,8 +31,9 @@ def enable_bt(bt: Button):
 
 
 class Panel:
-    def __init__(self, parent):
-        self.root = Toplevel()
+    def __init__(self, parent, from_panel):
+        self.from_panel = from_panel
+        self.root = parent
         self.parent = parent
         self.root.geometry("%dx%d" % (400, 500))  # 窗体尺寸
         self.root.title("自动化爬取和标注")  # 窗体标题
@@ -47,19 +48,29 @@ class Panel:
 
         self.launch_bt = None
 
-        self.middle_zone = Frame(self.root)
+        self.frame = Frame(self.root)
+
+        self.middle_zone = Frame(self.frame)
         self.create_entry()
         self.create_launch_bt()
         self.middle_zone.grid(row=1, column=0, sticky='w')
 
-        self.upper_zone = Frame(self.root)
+        self.upper_zone = Frame(self.frame)
         self.create_src_option()
         self.create_crawler_option()
         self.upper_zone.grid(row=0, column=0, sticky='w')
 
-        self.lower_zone = Frame(self.root)
+        self.lower_zone = Frame(self.frame)
         self.create_text_pad()
         self.lower_zone.grid(row=2, column=0, sticky='w')
+
+        Button(self.frame, text='返回', command=lambda: self.exit()).grid(row=3, column=0, sticky='w')
+
+        self.frame.pack()
+        
+    def exit(self):
+        self.frame.destroy()
+        self.from_panel.build()
 
     def create_src_option(self):
         src_opt_frame = Frame(self.upper_zone)
