@@ -13,6 +13,7 @@ import os
 from tkinter.ttk import Notebook, Progressbar, Style
 from collections import OrderedDict
 from threading import Thread
+from src.NLP import get_result as get_tags
 
 OM_WRAP_LEN = 30
 
@@ -257,18 +258,17 @@ class Panel:
         if text == '':
             return OrderedDict()
 
-        # TODO: 填补api
-        data = OrderedDict()
+        # data = OrderedDict()
+        #
+        # # fake_data
+        # for key1 in ['姓名', '省份', '罪由']:
+        #     val1 = []
+        #     for i in range(1, 50):
+        #         name = '{}测试{}'.format(key1, i)
+        #         val1.append(name)
+        #     data[key1] = val1
 
-        # fake_data
-        for key1 in ['姓名', '省份', '罪由']:
-            val1 = []
-            for i in range(1, 50):
-                name = '{}测试{}'.format(key1, i)
-                val1.append(name)
-            data[key1] = val1
-
-        return data
+        return get_tags(text)
 
     def build_nxt_bt(self, frame):
         bt_frame = Frame(frame)
