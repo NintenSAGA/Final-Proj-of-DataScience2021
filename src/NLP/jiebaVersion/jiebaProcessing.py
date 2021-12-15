@@ -6,13 +6,13 @@ import sys
 from collections import OrderedDict
 
 # 全国法院名单.txt
-jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/全国法院名单.txt')
+jieba.load_userdict('./NLP/jiebaVersion/全国法院名单.txt')
 
 # 罪名.txt
-jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/罪名.txt')
+jieba.load_userdict('./NLP/jiebaVersion/罪名.txt')
 
 # 其他需要增加权重的词语
-jieba.load_userdict('/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/userdict.txt')
+jieba.load_userdict('./NLP/jiebaVersion/userdict.txt')
 
 
 def get_verdict(text):
@@ -89,7 +89,7 @@ def cal_word_frequency(text):
     verdict = get_verdict(text)
     danInfo = get_danger_info(text)
     wordFrequency = {}
-    with open('./wF.txt', 'w') as wFfile:
+    with open('./NLP/jiebaVersion/wF.txt', 'w') as wFfile:
         for line in text1:
             for word in line:
                 if wordFrequency.get(str(word)):
@@ -217,7 +217,7 @@ def get_result(text):
     # print("Log:开始处理")
 
     cal_word_frequency(text)
-    return return_result('./wF.txt')
+    return return_result('./NLP/jiebaVersion/wF.txt')
     # i += 1
     # process_bar(i, num)
     # time.sleep(0.005)
