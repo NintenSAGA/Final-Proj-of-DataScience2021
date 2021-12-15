@@ -3,16 +3,17 @@ import re
 import time
 import jieba.posseg as pseg
 import sys
+from src import NLP
 from collections import OrderedDict
 
 # 全国法院名单.txt
-jieba.load_userdict('./NLP/jiebaVersion/全国法院名单.txt')
+jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/全国法院名单.txt')
 
 # 罪名.txt
-jieba.load_userdict('./NLP/jiebaVersion/罪名.txt')
+jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/罪名.txt')
 
 # 其他需要增加权重的词语
-jieba.load_userdict('./NLP/jiebaVersion/userdict.txt')
+jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/userdict.txt')
 
 
 def get_verdict(text):
@@ -89,7 +90,7 @@ def cal_word_frequency(text):
     verdict = get_verdict(text)
     danInfo = get_danger_info(text)
     wordFrequency = {}
-    with open('./NLP/jiebaVersion/wF.txt', 'w') as wFfile:
+    with open(NLP.__path__[0]+'/jiebaVersion/wF.txt', 'w') as wFfile:
         for line in text1:
             for word in line:
                 if wordFrequency.get(str(word)):
@@ -217,7 +218,7 @@ def get_result(text):
     # print("Log:开始处理")
 
     cal_word_frequency(text)
-    return return_result('./NLP/jiebaVersion/wF.txt')
+    return return_result(NLP.__path__[0]+'/jiebaVersion/wF.txt')
     # i += 1
     # process_bar(i, num)
     # time.sleep(0.005)
