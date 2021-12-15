@@ -29,7 +29,7 @@ def get_verdict(text):
         if ("判决如下" or "判决结果" or "判决主文") in lines[i]:
             return lines[i+1]
 
-    return 'None'
+    return ''
 
 
 def get_danger_info(text):
@@ -41,10 +41,10 @@ def get_danger_info(text):
     """
 
     lines = text.split('\n')
-    danInfo = 'None'
+    danInfo = ''
     for i in range(len(lines)):
-        if re.search(r'\d+(\.\d+)?(ｍｇ|mg)([／/])\d+(ｍｌ|ml)', lines[i], re.DOTALL):
-            danInfo = re.search(r'\d+(\.\d+)?(ｍｇ|mg)([／/])\d+(ｍｌ|ml)', lines[i], re.DOTALL).group(0)
+        if re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL):
+            danInfo = re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL).group(0)
             break
 
     return danInfo
@@ -132,23 +132,24 @@ def return_result(wFfilepath):
     # 涉案金额
     money = []
 
-    # 危险驾驶相关信息
+    # 酒精含量
     dan_message = []
 
     with open(wFfilepath, 'r+') as wFfile:
-        firstLine = wFfile.readline()
+        lines = wFfile.read().split('\n')
+        firstLine = lines[0]
         dan_message.append(firstLine.split('/ac')[0].strip('(\''))
-        for line in wFfile:
-            line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", line)
-            line = line.strip().replace('  ', ' ')
-            words = line.split(" ")
+        secondLine = lines[1]
+        sentences.append(secondLine)
+        l = len(lines)-1
+        for i in range(1, l):
+            lines[i] = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", lines[i])
+            lines[i] = lines[i].strip().replace('  ', ' ')
+            words = lines[i].split(" ")
             if words[len(words)-1] == 're':
                 for word in words:
-                    if word != 're':
-                        sentences.append(word)
                     if re.search('(罚金|人民币).*元', word):
                         money.append(str(re.search('(罚金|人民币).*元', word).group(0)))
-                        sentences.append(word)
             elif words[1] == 'nr':
                 personInfo.append(words[0])
             elif words[1] == 'ct':
@@ -172,7 +173,7 @@ def return_result(wFfilepath):
     result['审理法院'] = court
     result['判决结果'] = sentences
     result['罚金金额'] = money
-    result['危险驾驶相关信息'] = dan_message
+    result['酒精含量'] = dan_message
 
     # print(result)
     return result
