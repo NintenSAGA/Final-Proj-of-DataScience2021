@@ -13,6 +13,8 @@ from src.crawling.text_extract.pkulaw import import_cookies, retrieve_html_file,
 from src.crawling import common
 from sortedcontainers import SortedSet
 
+from pygtrie import CharTrie
+
 counter = 0
 
 pkulaw_url = 'https://www.pkulaw.com/case/'
@@ -187,7 +189,7 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
     # 读取每页所有条目
     count = 0
 
-    url_set = SortedSet(key=lambda x: date_sort(x))
+    url_set = CharTrie()
 
     try:
         while count < n:
@@ -200,10 +202,10 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
                 except Exception:
                     break
                 entry = '{},{},{}'.format(str.strip(date), title, href)
-                if entry in url_set:
+                if url_set.has_key(entry):
                     write_msg('重复！')
                     break
-                url_set.add(entry)
+                url_set[entry] = True
                 update_progress_bar(count, n, '已获取第{}项URL'.format(count))
                 count += 1
                 if count == n:
@@ -223,7 +225,7 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
         write_msg('Log: 所有条目的链接扒取完毕')
     finally:
         with open(url_list, 'w') as f:
-            f.write('\n'.join(url_set))
+            f.write('\n'.join(sorted(url_set.keys(), key=lambda x: date_sort(x))))
 
 
 def date_sort(s: str):

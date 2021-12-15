@@ -1,0 +1,1 @@
+from src.NLP.jiebaVersion.jiebaProcessing import get_result

@@ -126,7 +126,7 @@ def check_url_list(from_n, n, year=None) -> (bool, str):
     # 检查url_list是否存在
     global url_list
     if year is not None:
-        url_list = common.url_list.format(2021)
+        url_list = common.url_list.format(year)
     mis: int
     existed = 0
     msg: str
@@ -141,7 +141,7 @@ def check_url_list(from_n, n, year=None) -> (bool, str):
         else:
             msg = 'Log: url_list缓存不完整，缺失{}份'.format(mis)
     else:
-        msg = 'Log: 不存在{}缓存'.format(url_list)
+        msg = 'Log: 不存在url_list缓存'
 
     return fu_can_skip, msg
 
