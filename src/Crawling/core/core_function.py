@@ -122,8 +122,11 @@ def check_html_list(from_n, n, year=2021) -> (bool, str):
     return rhf_can_skip, msg
 
 
-def check_url_list(from_n, n, year=2021) -> (bool, str):
+def check_url_list(from_n, n, year=None) -> (bool, str):
     # 检查url_list是否存在
+    global url_list
+    if year is not None:
+        url_list = common.url_list.format(2021)
     mis: int
     existed = 0
     msg: str

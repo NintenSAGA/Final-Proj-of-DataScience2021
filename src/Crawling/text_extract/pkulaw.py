@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from mechanicalsoup import StatefulBrowser
 
 from src.crawling import common
-from src.crawling.common import html_path, noise_set, refined_text_folder, log, noise_path, write
+from src.crawling.common import html_path, noise_set, refined_text_folder, log, noise_path, write, write_msg
 from src.crawling.text_extract import str_insert
 
 browser = None
@@ -101,8 +101,7 @@ def retrieve_text(html_doc: str, name: str, counter: int):
     # print('正在处理文档......'.format(counter, counter))
 
     if not os.path.exists(html_doc):
-        print('Alert 未找到{}'.format(html_doc))
-        return
+        return 'Alert 未找到{}'.format(html_doc)
 
     with open(html_doc, 'r') as f:
         soup = BeautifulSoup(f.read(), features='html.parser')

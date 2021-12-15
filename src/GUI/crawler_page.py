@@ -32,6 +32,8 @@ def enable_bt(bt: Button):
 
 class Panel:
     def __init__(self, parent, from_panel):
+        self.debug_mode = False
+
         self.from_panel = from_panel
         self.root = parent
         self.parent = parent
@@ -43,8 +45,7 @@ class Panel:
         self.crawler_option = {}  # dict: name -> [Button, BooleanVar, Label]
         self.text_pad = None
 
-        self.entry_begin_n, self.entry_delta_n = None, None
-        self.var_begin_n, self.var_delta_n = None, None
+        self.var_begin_n, self.var_delta_n, self.var_year = StringVar(), StringVar(), StringVar()
 
         self.launch_bt = None
 
@@ -53,18 +54,18 @@ class Panel:
         self.middle_zone = Frame(self.frame)
         self.create_entry()
         self.create_launch_bt()
-        self.middle_zone.grid(row=1, column=0, sticky='w')
+        self.middle_zone.grid(row=2, column=0, sticky='w')
 
         self.upper_zone = Frame(self.frame)
         self.create_src_option()
         self.create_crawler_option()
-        self.upper_zone.grid(row=0, column=0, sticky='w')
+        self.upper_zone.grid(row=1, column=0, sticky='w')
 
         self.lower_zone = Frame(self.frame)
         self.create_text_pad()
-        self.lower_zone.grid(row=2, column=0, sticky='w')
+        self.lower_zone.grid(row=3, column=0, sticky='w')
 
-        Button(self.frame, text='返回', command=lambda: self.exit()).grid(row=3, column=0, sticky='w')
+        Button(self.frame, text='返回', command=lambda: self.exit()).grid(row=0, column=0, sticky='w')
 
         self.frame.pack()
         
@@ -83,9 +84,9 @@ class Panel:
                      [0, '中华人民共和国最高人民法院公报'],
                      [2, '裁判文书网']]
         for i, site_pack in enumerate(src_sites):
-            var, site = site_pack
-            bt = Radiobutton(src_opt_frame, text=site, variable=self.src_site, value=var, font=get_ft(14),
-                             state=tkinter.NORMAL if var == 1 else tkinter.DISABLED)
+            val, site = site_pack
+            bt = Radiobutton(src_opt_frame, text=site, variable=self.src_site, value=val, font=get_ft(14),
+                             state=tkinter.NORMAL if val == 1 else tkinter.DISABLED)
             bt.grid(row=i+1, column=0, sticky='w')
 
         src_opt_frame.grid(row=0, column=0, sticky='w')
@@ -100,17 +101,18 @@ class Panel:
     def create_entry(self):
         entry_frame = Frame(self.middle_zone)
 
-        self.var_begin_n = StringVar()
-        self.var_delta_n = StringVar()
+        # entries = [['开始条目', self.var_begin_n, self.entry_begin_n],
+        #            ['文书数量', self.var_delta_n, self.entry_delta_n]]
 
-        for var in [self.var_begin_n, self.var_delta_n]:
-            var.trace('w', lambda *args: self.label_update(self.var_begin_n.get(), self.var_delta_n.get()))
+        entries = [['年份', self.var_year],
+                   ['文书数量', self.var_delta_n]]
 
-        entries = [['开始条目', self.var_begin_n, self.entry_begin_n],
-                   ['文书数量', self.var_delta_n, self.entry_delta_n]]
         for i, pack in enumerate(entries):
             single_entry_frame = Frame(entry_frame)
-            text, var, entry = pack
+            text, var = pack
+
+            var.trace('w', lambda *args: self.label_update(self.var_year.get(), self.var_delta_n.get()))   # 设定跟踪动作
+
             Label(single_entry_frame, text=text, font=get_ft(15), bg='white').pack(side=tkinter.LEFT)
             entry = Entry(single_entry_frame, width=5, borderwidth=4, textvariable=var)
             entry.pack(side=tkinter.LEFT)
@@ -128,10 +130,12 @@ class Panel:
         thread = Thread(target=lambda: crawl(
             n=int(self.var_delta_n.get()),
             src=self.src_site.get(),
-            from_n=int(self.var_begin_n.get()),
+            from_n=0,
             skip_fu=not self.crawler_option['url_list'][1].get(),
             skip_rhf=not self.crawler_option['html_list'][1].get(),
-            launched_by_gui=True))
+            year=int(self.var_year.get()),
+            launched_by_gui=True,
+            debug_mode=self.debug_mode))
 
         thread.start()
         Thread(target=lambda: wait_for_its_end(self.launch_bt, thread)).start()
@@ -150,12 +154,12 @@ class Panel:
             bt.pack(side=tkinter.LEFT)
             label = Label(opt_frame, text='', font=get_ft(10), bg='white', fg='blue')
             label.pack(side=tkinter.LEFT)
-            var.trace('w', lambda *args: self.url_list_action())
             self.crawler_option[text] = [bt, var, label]
             opt_frame.grid(column=0, row=i+1, sticky='w')
 
+        self.crawler_option['url_list'][1].trace('w', lambda *args: self.url_list_action())
         self.var_delta_n.set(value='100')
-        self.var_begin_n.set(value='0')
+        self.var_year.set(value='2021')
 
         crawler_opt_frame.grid(row=2, column=0, sticky='w')
 
@@ -166,29 +170,32 @@ class Panel:
         html_bt.config(state=tkinter.DISABLED if var.get() else tkinter.NORMAL)
         html_var.set(value=var.get())
 
-    def label_update(self, from_n, delta_n):
+    def label_update(self, year: str, delta_n: str):
         try:
-            from_n = int(from_n)
+            year = int(year)
             delta_n = int(delta_n)
-            if from_n > delta_n or delta_n > 2500:
+            if year > 2021 or year < 2000 or delta_n > 2500:
                 raise ValueError
-            url_var, url_msg = check_url_list(from_n, delta_n)
-            html_var, html_msg = check_html_list(from_n, delta_n)
+            url_var, url_msg = check_url_list(0, delta_n, year)
+            html_var, html_msg = check_html_list(0, delta_n, year)
             enable_bt(self.launch_bt)
         except (ValueError, TypeError):
             disable_bt(self.launch_bt)
             url_var, url_msg = False, '参数错误'
             html_var, html_msg = False, '参数错误'
 
-        for keys in [['url_list', url_var, url_msg], ['html_list', html_var, html_msg]]:
+        for keys in [['url_list', url_var, url_msg],
+                     ['html_list', html_var, html_msg]]:
             pack = self.crawler_option[keys[0]]
             if not keys[1]:
                 pack[1].set(value=keys[1])
             max_len = 50
+            # 防止过长
             if len(keys[2]) < max_len:
                 pack[2].config(text=keys[2])
             else:
                 pack[2].config(text=keys[2][:max_len]+'...')
+            # 颜色
             if keys[1]:
                 pack[2].config(fg='blue')
             else:

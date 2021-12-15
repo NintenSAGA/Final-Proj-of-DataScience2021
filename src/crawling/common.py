@@ -8,10 +8,11 @@ from src.GUI.common import write_text
 result_folder = src.__path__[0] + '/crawling/results/'
 html_folder = result_folder + '~html/'
 refined_text_folder = result_folder + '~refined_text/'
+json_folder = refined_text_folder + 'json/'
 
 html_path = html_folder + '{}.html'
 noise_path = result_folder + 'noise_set.pkl'
-url_list = result_folder + '~{}_url_list.txt'
+url_list = result_folder + '{}_url_list.txt'
 
 noise_set = pickle.load(open(noise_path, 'rb'))
 log = []
