@@ -70,7 +70,7 @@ transformers==4.12.5
 trie==2.0.0
 trio==0.19.0
 trio-websocket==0.9.2
-typing_extensions==4.0.1
+typing-extensions==4.0.1
 urllib3==1.26.7
 w3lib==1.22.0
 webdriver-manager==3.5.2
