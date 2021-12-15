@@ -43,6 +43,7 @@ parse==1.19.0
 phrasetree==0.0.8
 pycparser==2.21
 pyee==8.2.2
+pygtrie==2.4.2
 pynvml==11.0.0
 pyOpenSSL==21.0.0
 pyparsing==3.0.6

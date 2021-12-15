@@ -1,22 +1,25 @@
 import math
+import time
 import tkinter
 
-from src.crawling.common import refined_text_folder, result_folder, json_folder
+from src.crawling.common import refined_text_folder, result_folder
 from src.GUI.common import get_ft, write_text
 from src.GUI import common
-from tkinter import Button, Frame, Label, Entry, OptionMenu, IntVar, Radiobutton
-from tkinter import StringVar
+from tkinter import Button, Frame, Label, Entry, OptionMenu, IntVar, Radiobutton, messagebox
+from tkinter import StringVar, Toplevel
 from tkinter.filedialog import askdirectory
 from tkinter.scrolledtext import ScrolledText
 import os
-from tkinter.ttk import Notebook
+from tkinter.ttk import Notebook, Progressbar, Style
 from collections import OrderedDict
+from threading import Thread
 
 OM_WRAP_LEN = 30
 
 
 class Panel:
     def __init__(self, parent, from_panel):
+        self.state_label = None
         self.from_panel = from_panel
         self.root = parent
         self.parent = parent
@@ -43,17 +46,42 @@ class Panel:
         self.tabs = None    # 切换标签页, Notebook
         self.build_right_frame(self.right_frame)
         self.tags = OrderedDict()  # type: OrderedDict[str, (IntVar, list[str])]  # 存放tag数据结构
+        self.json_folder = ''    # 存放json的位置
         self.right_frame.grid(row=1, column=1, sticky='w')
 
         self.folder_path.set(value=refined_text_folder)
 
         Button(self.frame, text='返回', command=lambda: self.exit()).grid(row=0, column=0, sticky='w')
+        Button(self.frame, text='自动标注',
+               command=lambda: Thread(target=lambda: self.automation()).start())\
+            .grid(row=0, column=1, sticky='w')
 
         self.frame.pack()
 
     def exit(self):
         self.frame.destroy()
         self.from_panel.build()
+
+    def automation(self):
+        if not messagebox.askyesno(message='此操作需要一定时间，是否继续？'):
+            return
+
+        popup = Toplevel()
+        popup.geometry('300x100+500+400')
+        popup.title('正在处理文书....')
+        progress_bar = Progressbar(popup, orient='horizontal', length=len(self.file_list),
+                                   mode='determinate')
+        progress_bar.pack(ipady=100, ipadx=100)
+
+        for i in range(0, len(self.file_list)):
+            popup.update()
+            self.update_idx(i)
+            self.yield_json()
+            progress_bar.configure(value=i)
+            popup.title('正在处理文书{}'.format(i))
+
+        popup.destroy()
+        messagebox.showinfo(message='已完成{}份标注'.format(len(self.file_list)))
 
     # ==================构建左侧页面==================================== #
     def build_left_frame(self, frame):
@@ -124,12 +152,15 @@ class Panel:
     def update_text(self):
         if self.file_name.get() == '':
             text = ''
+            json_folder = ''
         else:
             full_path = self.folder_path.get() + '/' + self.file_list[self.idx]
+            json_folder = self.folder_path.get() + '/json/'
             with open(full_path, 'r') as f:
                 text = f.read()
 
         self.cur_text = text
+        self.json_folder = json_folder
         write_text(text)
         self.text_area.yview('0.0')
 
@@ -151,6 +182,10 @@ class Panel:
         self.idx = idx % len(self.file_list)
         self.file_name.set(self.file_list[self.idx][:OM_WRAP_LEN])
         self.info_label.config(text="第{}份，共{}份".format(self.idx + 1, len(self.file_list)))
+        if self.is_json_existed():
+            self.state_label.config(text="已保存", fg='green')
+        else:
+            self.state_label.config(text='未保存', fg='red')
         self.update_tabs()
 
     # -----------------第三层，划动文本框, row = 2---------------------- #
@@ -170,7 +205,14 @@ class Panel:
 
         # 中央文字信息
         self.info_label = Label(bottom_frame, text='', fg='blue')
-        self.info_label.place(relx=.5, rely=.5, anchor='center')
+        self.info_label.place(relx=.4, rely=.5, anchor='center')
+
+        # 右侧保存状态信息
+        self.state_label = Label(bottom_frame, text='', fg='blue')
+        self.state_label.place(relx=.6, rely=.5, anchor='center')
+
+        bt_right = Button(bottom_frame, text='下一份', command=lambda: self.update_idx(self.idx + 1))
+        bt_right.place(relx=.8, rely=.5, anchor='center')
 
         bottom_frame.grid(row=3, column=0, sticky='nsew')
 
@@ -199,6 +241,8 @@ class Panel:
             child.destroy()
 
         for category in tags.keys():
+            if len(tags[category]) == 0:
+                continue
             tab_frame = Frame(self.tabs)                                # 子框架
             tab_var = IntVar()                                          # 变量
             self.tags.update({category: (tab_var, tags[category])})     # 更新域
@@ -230,9 +274,8 @@ class Panel:
         bt_frame = Frame(frame)
 
         # 右侧下一份按钮
-        # TODO: 更改成 保存，下一份
         bt_right = Button(bt_frame, text='保存，下一份', command=lambda: self.save_and_nxt())
-        bt_right.grid(column=0, row=0, sticky='e')
+        bt_right.grid(column=1, row=0, sticky='e')
 
         bt_frame.grid(row=1, column=0, sticky='nsew')
 
@@ -245,10 +288,12 @@ class Panel:
         生成Json文件
         :return:
         """
-        json_file = json_folder + self.file_name.get() + '.json'
-        if not os.path.exists(json_folder):
-            os.mkdir(json_folder)
+        if self.json_folder == '':
+            return
+        json_file = self.json_folder + self.file_name.get()
 
+        if not os.path.exists(self.json_folder):
+            os.mkdir(self.json_folder)
         # {
         #     "Criminals": "周永华",
         #     "Gender": "男",
@@ -263,10 +308,18 @@ class Panel:
             entries = []
             for category in self.tags.keys():
                 sel, tag_list = self.tags[category]
-                tag = tag_list[sel.get()]
+                if len(tag_list) == 0:
+                    tag = 'None'
+                else:
+                    tag = tag_list[sel.get()]
                 entries.append('\t"{}": "{}"'.format(category, tag))
             f.write(',{}'.format(os.linesep).join(entries))
             f.write(os.linesep + '}')
+
+    def is_json_existed(self) -> bool:
+        if self.json_folder == '':
+            return False
+        return os.path.exists(self.json_folder + self.file_name.get())
 
 
 def get_files_in_folder(folder: str) -> list:
@@ -289,10 +342,13 @@ def date_sort(s: str):
     :param s: 字符串
     :return:
     """
-    date_and_n = s.split('_')
-    date_vals = date_and_n[0].split('.')
+    try:
+        date_and_n = s.split('_')
+        date_vals = date_and_n[0].split('.')
 
-    return date_vals[0], date_vals[1], date_vals[2], date_and_n[1].split('.')[0]
+        return date_vals[0], date_vals[1], date_vals[2], date_and_n[1].split('.')[0]
+    finally:
+        return s
 
 
 def check_file_num(folder_path) -> int:
@@ -303,3 +359,6 @@ def check_file_num(folder_path) -> int:
         if file.endswith('.txt'):
             count += 1
     return -1 if count == 0 else count
+
+
+
