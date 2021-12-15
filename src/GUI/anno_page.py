@@ -13,7 +13,6 @@ import os
 from tkinter.ttk import Notebook, Progressbar, Style
 from collections import OrderedDict
 from threading import Thread
-from src.NLP import get_result as get_tags
 
 OM_WRAP_LEN = 30
 
@@ -24,7 +23,7 @@ class Panel:
         self.from_panel = from_panel
         self.root = parent
         self.parent = parent
-        self.root.geometry("%dx%d" % (800, 500))  # 窗体尺寸
+        self.root.geometry("%dx%d" % (1000, 500))  # 窗体尺寸
         self.root.title("自动化爬取和标注")  # 窗体标题
         self.root.resizable(False, False)  # 窗口大小不可变
 
@@ -249,11 +248,12 @@ class Panel:
             self.tags.update({category: (tab_var, tags[category])})     # 更新域
             self.tabs.add(tab_frame, text=category)                     # 添加标签
             for i, tag in enumerate(tags[category]):
-                rbt = Radiobutton(tab_frame, text=tag, variable=tab_var, value=i)
+                rbt = Radiobutton(tab_frame, text=tag, variable=tab_var, value=i, wraplength=100)
                 rbt.grid(column=math.floor(i/17), row=i % 17, sticky='w')
             tab_var.set(value=0)
 
     def grab_tags(self) -> OrderedDict[str, list[str]]:
+        from src.NLP import get_result as get_tags
         text = self.cur_text
         if text == '':
             return OrderedDict()
