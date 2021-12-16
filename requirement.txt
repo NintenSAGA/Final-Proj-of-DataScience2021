@@ -13,7 +13,6 @@ configparser==5.2.0
 crayons==0.4.0
 cryptography==36.0.0
 cssselect==1.1.0
-cytoolz==0.11.2
 eth-hash==0.3.2
 eth-typing==3.0.0
 eth-utils==2.0.0

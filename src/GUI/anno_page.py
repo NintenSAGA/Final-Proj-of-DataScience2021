@@ -18,6 +18,14 @@ import json
 OM_WRAP_LEN = 30
 
 
+def grab_tags(text) -> OrderedDict[str, list[str]]:
+    from src.NLP import get_result as get_tags
+    if text == '':
+        return OrderedDict()
+
+    return get_tags(text)
+
+
 class Panel:
     def __init__(self, parent, from_panel):
         self.state_label = None
@@ -44,17 +52,17 @@ class Panel:
         self.left_frame.grid(row=1, column=0, sticky='w')
 
         self.right_frame = Frame(self.frame)
-        self.tabs = None    # 切换标签页, Notebook
+        self.tabs = None  # 切换标签页, Notebook
         self.build_right_frame(self.right_frame)
         self.tags = OrderedDict()  # type: OrderedDict[str, (IntVar, list[str])]  # 存放tag数据结构
-        self.json_folder = ''    # 存放json的位置
+        self.json_folder = ''  # 存放json的位置
         self.right_frame.grid(row=1, column=1, sticky='w')
 
         self.folder_path.set(value=refined_text_folder)
 
         Button(self.frame, text='返回', command=lambda: self.exit()).grid(row=0, column=0, sticky='w')
         Button(self.frame, text='自动标注',
-               command=lambda: Thread(target=lambda: self.automation()).start())\
+               command=lambda: Thread(target=lambda: self.automation()).start()) \
             .grid(row=0, column=1, sticky='w')
 
         self.frame.pack()
@@ -230,46 +238,34 @@ class Panel:
 
         tab_frame.grid(row=0, column=0)
 
-    def update_tabs(self):
+    def update_tabs(self, bg_move: bool = False, text: str = None):
         """
         更新标签页信息并保存到self.tags
+        :param bg_move: 是否为后台操作
+        :param text: 后台操作时指定文本
         :return:
         """
-        tags = self.grab_tags()
+        if bg_move:
+            tags = grab_tags(text)
+        else:
+            tags = grab_tags(self.cur_text)
+
         self.tabs = self.tabs  # type: Notebook
 
         for child in self.tabs.winfo_children():
             child.destroy()
 
         for category in tags.keys():
-            tab_var = IntVar()                                          # 变量
-            self.tags.update({category: (tab_var, tags[category])})     # 更新域
-            if len(tags[category]) == 0:
+            tab_var = IntVar()  # 变量
+            self.tags.update({category: (tab_var, tags[category])})  # 更新域
+            if bg_move or len(tags[category]) == 0:
                 continue
-            tab_frame = Frame(self.tabs)                                # 子框架
-            self.tabs.add(tab_frame, text=category)                     # 添加标签
+            tab_frame = Frame(self.tabs)  # 子框架
+            self.tabs.add(tab_frame, text=category)  # 添加标签
             for i, tag in enumerate(tags[category]):
                 rbt = Radiobutton(tab_frame, text=tag, variable=tab_var, value=i, wraplength=100)
-                rbt.grid(column=math.floor(i/17), row=i % 17, sticky='w')
+                rbt.grid(column=math.floor(i / 17), row=i % 17, sticky='w')
             tab_var.set(value=0)
-
-    def grab_tags(self) -> OrderedDict[str, list[str]]:
-        from src.NLP import get_result as get_tags
-        text = self.cur_text
-        if text == '':
-            return OrderedDict()
-
-        # data = OrderedDict()
-        #
-        # # fake_data
-        # for key1 in ['姓名', '省份', '罪由']:
-        #     val1 = []
-        #     for i in range(1, 50):
-        #         name = '{}测试{}'.format(key1, i)
-        #         val1.append(name)
-        #     data[key1] = val1
-
-        return get_tags(text)
 
     def build_nxt_bt(self, frame):
         bt_frame = Frame(frame)
@@ -363,6 +359,3 @@ def check_file_num(folder_path) -> int:
         if file.endswith('.txt'):
             count += 1
     return -1 if count == 0 else count
-
-
-

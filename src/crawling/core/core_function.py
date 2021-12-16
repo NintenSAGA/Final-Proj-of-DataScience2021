@@ -104,7 +104,7 @@ def check_html_list(from_n, n, year=2021) -> (bool, str):
     rhf_can_skip: bool
     existed = 0
     msg: str
-    
+
     if not os.path.exists(html_folder):
         os.mkdir(html_folder)
 
