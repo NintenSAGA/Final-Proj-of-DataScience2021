@@ -4,10 +4,4 @@
 /venv/
 [~]*
 *.pyc
-*.pyc
-*.pyc
-src/crawling/core/.DS_Store
-src/GUI/.DS_Store
-src/NLP/.DS_Store
-src/crawling/.DS_Store
-src/crawling/text_extract/.DS_Store
+.DS_Store
