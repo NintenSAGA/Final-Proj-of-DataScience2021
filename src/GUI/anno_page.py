@@ -10,9 +10,10 @@ from tkinter import StringVar, Toplevel
 from tkinter.filedialog import askdirectory
 from tkinter.scrolledtext import ScrolledText
 import os
-from tkinter.ttk import Notebook, Progressbar, Style
+from tkinter.ttk import Notebook, Progressbar
 from collections import OrderedDict
 from threading import Thread
+import json
 
 OM_WRAP_LEN = 30
 
@@ -69,7 +70,7 @@ class Panel:
         popup = Toplevel()
         popup.geometry('300x100+500+400')
         popup.title('正在处理文书....')
-        progress_bar = Progressbar(popup, orient='horizontal', length=len(self.file_list),
+        progress_bar = Progressbar(popup, orient='horizontal', length=100,
                                    mode='determinate')
         progress_bar.pack(ipady=100, ipadx=100)
 
@@ -77,7 +78,7 @@ class Panel:
             popup.update()
             self.update_idx(i)
             self.yield_json()
-            progress_bar.configure(value=i)
+            progress_bar.configure(value=100 * ((i + 1) / len(self.file_list)))
             popup.title('正在处理文书{}'.format(i))
 
         popup.destroy()
@@ -241,11 +242,11 @@ class Panel:
             child.destroy()
 
         for category in tags.keys():
+            tab_var = IntVar()                                          # 变量
+            self.tags.update({category: (tab_var, tags[category])})     # 更新域
             if len(tags[category]) == 0:
                 continue
             tab_frame = Frame(self.tabs)                                # 子框架
-            tab_var = IntVar()                                          # 变量
-            self.tags.update({category: (tab_var, tags[category])})     # 更新域
             self.tabs.add(tab_frame, text=category)                     # 添加标签
             for i, tag in enumerate(tags[category]):
                 rbt = Radiobutton(tab_frame, text=tag, variable=tab_var, value=i, wraplength=100)
@@ -290,7 +291,7 @@ class Panel:
         """
         if self.json_folder == '':
             return
-        json_file = self.json_folder + self.file_name.get()
+        json_file = self.get_json_name()
 
         if not os.path.exists(self.json_folder):
             os.mkdir(self.json_folder)
@@ -319,7 +320,10 @@ class Panel:
     def is_json_existed(self) -> bool:
         if self.json_folder == '':
             return False
-        return os.path.exists(self.json_folder + self.file_name.get())
+        return os.path.exists(self.get_json_name())
+
+    def get_json_name(self):
+        return (self.json_folder + self.file_list[self.idx]).replace('txt', 'json')
 
 
 def get_files_in_folder(folder: str) -> list:

@@ -42,12 +42,31 @@ def get_danger_info(text):
 
     lines = text.split('\n')
     danInfo = ''
-    for i in range(len(lines)):
-        if re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL):
-            danInfo = re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL).group(0)
-            break
+
+    mea_a = ['ｍｇ', 'mg', '毫克']
+    mea_b = ['ｍｌ', 'ml', '毫升']
+    num = '\\d+(\\.\\d+)?'
+
+    p = '{}({})[^{}]+({})?({})'.format(num, '|'.join(mea_a), ''.join(mea_a) + ''.join(mea_b), num, '|'.join(mea_b))
+
+    pattern = re.compile(r'{}'.format(p))
+
+    pos = 0
+    match = pattern.search(text, pos)
+    while match:
+        pos = match.span()[1]
+        danInfo = match.group(0)
+        match = pattern.search(text, pos)
 
     return danInfo
+
+    #
+    # for i in range(len(lines)):
+    #     if re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL):
+    #         danInfo = re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL).group(0)
+    #         break
+    #
+    # return danInfo
 
 
 def process_property(filePath):
@@ -137,10 +156,15 @@ def return_result(wFfilepath):
 
     with open(wFfilepath, 'r+') as wFfile:
         lines = wFfile.read().split('\n')
+
         firstLine = lines[0]
         dan_message.append(firstLine.split('/ac')[0].strip('(\''))
+        if dan_message[0] == '':
+            dan_message = []
+
         secondLine = lines[1]
-        sentences.append(secondLine)
+        sentences.append(secondLine.split('/re')[0].strip("('"))
+
         l = len(lines)-1
         for i in range(1, l):
             lines[i] = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", lines[i])
