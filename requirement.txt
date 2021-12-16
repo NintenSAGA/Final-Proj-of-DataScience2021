@@ -66,7 +66,6 @@ toposort==1.5
 torch==1.10.0
 tqdm==4.62.3
 transformers==4.12.5
-trie==2.0.0
 trio==0.19.0
 trio-websocket==0.9.2
 typing-extensions==4.0.1
