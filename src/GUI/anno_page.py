@@ -1,5 +1,4 @@
 import math
-import time
 import tkinter
 
 from src.crawling.common import refined_text_folder, result_folder
@@ -13,7 +12,6 @@ import os
 from tkinter.ttk import Notebook, Progressbar
 from collections import OrderedDict
 from threading import Thread
-import json
 
 OM_WRAP_LEN = 30
 
@@ -84,8 +82,8 @@ class Panel:
 
         for i in range(0, len(self.file_list)):
             popup.update()
-            self.update_idx(i)
-            self.yield_json()
+            self.update_tabs(True, i)
+            self.yield_json(True, i)
             progress_bar.configure(value=100 * ((i + 1) / len(self.file_list)))
             popup.title('正在处理文书{}'.format(i))
 
@@ -170,7 +168,7 @@ class Panel:
 
         self.cur_text = text
         self.json_folder = json_folder
-        write_text(text)
+        write_text(text[:2000] + ('(未完全显示)...' if len(text) >= 2000 else ''))
         self.text_area.yview('0.0')
 
     def update_om(self, file_list: []):
@@ -238,17 +236,25 @@ class Panel:
 
         tab_frame.grid(row=0, column=0)
 
-    def update_tabs(self, bg_move: bool = False, text: str = None):
+    def update_tabs(self, bg_move: bool = False, idx: int = None):
         """
         更新标签页信息并保存到self.tags
+        :param idx:
         :param bg_move: 是否为后台操作
-        :param text: 后台操作时指定文本
         :return:
         """
         if bg_move:
+            file_name = self.file_list[idx]
+            path = self.folder_path.get() + '/' + file_name
+            with open(path, 'r') as f:
+                text = f.read()
             tags = grab_tags(text)
         else:
+            file_name = self.file_list[self.idx]
             tags = grab_tags(self.cur_text)
+
+        date = file_name.split('_')[0]
+        tags['时间'] = [date]
 
         self.tabs = self.tabs  # type: Notebook
 
@@ -280,14 +286,15 @@ class Panel:
         self.yield_json()
         self.update_idx(self.idx + 1)
 
-    def yield_json(self):
+    def yield_json(self, bg_move: bool = False, given_idx: int = 0):
         """
         生成Json文件
         :return:
         """
         if self.json_folder == '':
             return
-        json_file = self.get_json_name()
+        idx = self.idx if not bg_move else given_idx
+        json_file = self.get_json_name(idx)
 
         if not os.path.exists(self.json_folder):
             os.mkdir(self.json_folder)
@@ -298,6 +305,8 @@ class Panel:
             for category in self.tags.keys():
                 sel, tag_list = self.tags[category]
                 if len(tag_list) == 0:
+                    if category in ['省份', '罪名', '主刑']:
+                        print('{}: 不存在{}'.format(self.file_list[idx].split('.')[:3], category))
                     tag = 'None'
                 else:
                     tag = tag_list[sel.get()]
@@ -308,10 +317,10 @@ class Panel:
     def is_json_existed(self) -> bool:
         if self.json_folder == '':
             return False
-        return os.path.exists(self.get_json_name())
+        return os.path.exists(self.get_json_name(self.idx))
 
-    def get_json_name(self):
-        return (self.json_folder + self.file_list[self.idx]).replace('txt', 'json')
+    def get_json_name(self, idx: int):
+        return (self.json_folder + self.file_list[idx]).replace('txt', 'json')
 
 
 def get_files_in_folder(folder: str) -> list:

@@ -22,6 +22,7 @@ def import_cookies(cookies: list[dict]):
     global browser
     if browser is None:
         browser = StatefulBrowser()
+        browser.set_user_agent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62')
     for cookie in cookies:
         c = {cookie['name']: cookie['value']}
         browser.session.cookies.update(c)
@@ -39,6 +40,7 @@ def retrieve_html_file(url: str, name):
 
     if browser is None:
         browser = StatefulBrowser()
+        browser.set_user_agent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62')
 
     browser.open(url)
 
