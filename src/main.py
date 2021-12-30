@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 
 
-from NLP.jiebaVersion.jiebaProcessing import cal_word_frequency, get_result, return_result
+from NLP.jiebaVersion.jiebaProcessing import cal_word_frequency, get_result, parse_word_freq
 
 if __name__ == '__main__':
     # crawl(200, 1, 200)

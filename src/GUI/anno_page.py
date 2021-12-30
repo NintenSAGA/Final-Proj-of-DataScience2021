@@ -291,14 +291,6 @@ class Panel:
 
         if not os.path.exists(self.json_folder):
             os.mkdir(self.json_folder)
-        # {
-        #     "Criminals": "周永华",
-        #     "Gender": "男",
-        #     "Ethnicity": "汉族",
-        #     "Birthplace": "贵州省威宁彝族回族苗族自治县",
-        #     "Accusation": "抢劫",
-        #     "Courts": "云南省红河哈..."
-        # }
 
         with open(json_file, 'w') as f:
             f.write('{' + os.linesep)
