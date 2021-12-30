@@ -1,19 +1,23 @@
 import jieba
 import re
-import time
+import pickle
 import jieba.posseg as pseg
-import sys
 from src import NLP
 from collections import OrderedDict
 
-# 全国法院名单.txt
-jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/全国法院名单.txt')
-
-# 罪名.txt
-jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/罪名.txt')
+WORK_DIR = NLP.__path__[0]+'/jiebaVersion/'
+DICTS_DIR = WORK_DIR + 'user_dicts/'
+CITY_TO_PROV = pickle.load(open(WORK_DIR + 'city_to_prov.pkl', 'rb'))   # type: {str: str}
 
 # 其他需要增加权重的词语
-jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/userdict.txt')
+jieba.load_userdict(DICTS_DIR + 'userdict.txt')
+# court_list.txt
+jieba.load_userdict(DICTS_DIR + 'court_list.txt')
+# accusation_list.txt
+jieba.load_userdict(DICTS_DIR + 'accusation_list.txt')
+# 省份与城市
+jieba.load_userdict(DICTS_DIR + 'city_list.txt')
+jieba.load_userdict(DICTS_DIR + 'prov_list.txt')
 
 
 def get_verdict(text: str):
@@ -30,16 +34,14 @@ def get_verdict(text: str):
     return ''
 
 
-def get_danger_info(text):
+def get_alcohol(text):
     """
     得到危险驾驶信息
 
     :parameter text:文本 -> str
     :return danInfo -> str
     """
-
-    lines = text.split('\n')
-    danInfo = ''
+    alcohol = ''
 
     mea_a = ['ｍｇ', 'mg', '毫克']
     mea_b = ['ｍｌ', 'ml', '毫升']
@@ -53,18 +55,10 @@ def get_danger_info(text):
     match = pattern.search(text, pos)
     while match:
         pos = match.span()[1]
-        danInfo = match.group(0)
+        alcohol = match.group(0)
         match = pattern.search(text, pos)
 
-    return danInfo
-
-    #
-    # for i in range(len(lines)):
-    #     if re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL):
-    #         danInfo = re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL).group(0)
-    #         break
-    #
-    # return danInfo
+    return alcohol
 
 
 def process_property(filePath):
@@ -105,15 +99,14 @@ def cal_word_frequency(text):
     """
     filtered_list = process_text(text)
     verdict = get_verdict(text)
-    alcohol = get_danger_info(text)
+    alcohol = get_alcohol(text)
     word_freq = {}
 
-    with open(NLP.__path__[0]+'/jiebaVersion/wF.txt', 'w') as wFfile:
+    with open(WORK_DIR + 'wF.txt', 'w') as wFfile:
         for line in filtered_list:
             for word in line:
                 s = str(word)
                 word_freq[s] = word_freq.get(s, 0) + 1
-
         sorted_word_freq = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
         wFfile.write('(\'' + alcohol + '/ac' + '\')' + '\n')
         wFfile.write('(\''+verdict + '/re' + '\')'+'\n')
@@ -132,27 +125,15 @@ def return_result(wFfilepath):
         :parameter wFfilepath: 词频文本路径
         :return result -> OrderedDict[str,list[str]]
     """
-    # 个人基本信息
-    name = []
 
-    # 地区
-    province = []
+    name = []               # 个人基本信息
+    province = []           # 地区
     city = []
-
-    # 罪名
-    accusation = []
-
-    # 审理法院
-    court = []
-
-    # 判决结果
-    verdict = []
-
-    # 涉案金额
-    money = []
-
-    # 酒精含量
-    alcohol = []
+    accusation = []         # 罪名
+    court = []              # 审理法院
+    verdict = []            # 判决结果
+    money = []              # 涉案金额
+    alcohol = []            # 酒精含量
 
     with open(wFfilepath, 'r+') as wFfile:
         lines = wFfile.read().split('\n')
@@ -165,28 +146,51 @@ def return_result(wFfilepath):
         verdict_line = lines[1]
         verdict.append(verdict_line.split('/re')[0].strip("('"))
 
+        prov_pat = re.compile('^.*(省|自治区)')
+        city_pat = re.compile('^.*(市|县)')
+
         for line in lines[2:]:
             line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", line)
             line = line.strip().replace('  ', ' ')
             words = line.split(" ")
+
             if words[-1] == 're':
                 for word in words:
                     if re.search('(罚金|人民币).*元', word):
                         money.append(str(re.search('(罚金|人民币).*元', word).group(0)))
-            elif words[1] == 'nr':
+            elif words[-1] == 'nr':
                 name.append(words[0])
-            elif words[1] == 'ct':
+            elif words[-1] == 'ct':
                 court.append(words[0])
-            elif words[1] == 'ns':
-                if words[0].endswith("省") or words[0].endswith("自治区"):
-                    province.append(words[0])
-                elif words[0].endswith("市"):
-                    city.append(words[0])
-            elif words[0].endswith("罪"):
-                if words[1] == 'cg':
-                    accusation.append(words[0])
-                elif len(words[0]) == 3:
-                    accusation.append(words[0])
+                # 提取省份
+                prov_match = prov_pat.search(words[0])
+                # case 1: 非直辖市
+                if prov_match:
+                    province.insert(0, prov_match.group(0))
+                    city_match = city_pat.search(words[0][prov_match.span()[1]:])
+                    if city_match:
+                        city.insert(0, city_match.group(0))
+                # case 2: 直辖市
+                else:
+                    city_match = city_pat.search(words[0])
+                    if city_match:
+                        city_name = city_match.group(0)
+                        province.insert(0, city_name)
+                        city.insert(0, city_name)
+            elif words[-1] == 'prov':
+                province.append(words[0])
+            elif words[-1] == 'city':
+                city.append(words[0])
+            elif words[-1] == 'cg':
+                accusation.append(words[0])
+
+    # side cases
+    # 1. 审理法院占用省份词条
+    if len(province) == 0 and len(court) != 0:
+        province.append(re.search('.*(省|自治区)', court[0]).group(0))
+    # 2. 直辖市
+    if len(city) == 0 and len(province) != 0 and province[0].endswith('市'):
+        city.append(province[0])
 
     result = OrderedDict()
     result['姓名'] = name
@@ -214,6 +218,6 @@ def get_result(text):
         return: result -> OrderedDict[str,list[str]]
     """
     cal_word_frequency(text)
-    return return_result(NLP.__path__[0]+'/jiebaVersion/wF.txt')
+    return return_result(WORK_DIR + 'wF.txt')
 
 
