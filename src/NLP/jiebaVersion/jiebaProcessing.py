@@ -8,6 +8,8 @@ from collections import OrderedDict
 WORK_DIR = NLP.__path__[0] + '/jiebaVersion/'
 DICTS_DIR = WORK_DIR + 'user_dicts/'
 CITY_TO_PROV = pickle.load(open(WORK_DIR + 'city_to_prov.pkl', 'rb'))  # type: {str, str}
+punc = ['。', '，', '；', '？', '！', '：', ',', '.', ';', ':', '?', '!', '（',
+        '】']
 
 # 其他需要增加权重的词语
 jieba.load_userdict(DICTS_DIR + 'userdict.txt')
@@ -118,8 +120,10 @@ def get_alcohol(text) -> str:
     """
     alcohol = ''
 
-    mea_a = ['ｍｇ', 'mg', '毫克']
-    mea_b = ['ｍｌ', 'ml', '毫升']
+    mea_a = ['ｍｇ', 'mg', '毫克', 'mG', 'ｍＧ', 'MG', 'Mg', 'ＭＧ', 'Ｍｇ']
+    mea_b = ['ｍｌ', 'ml', '毫升', 'mL', 'ｍＬ', 'ML', 'Ml', 'ＭＬ', 'Ｍｌ', 'ｍ1']
+    # ｍｌＭＬＭＧｍｇ
+    # 162.28ｍｇ／100ｍ1
     num = '\\d+(\\.\\d+)?'
 
     p = '{}({})[^{}]+({})?({})'.format(num, '|'.join(mea_a), ''.join(mea_a) + ''.join(mea_b), num, '|'.join(mea_b))
@@ -145,10 +149,9 @@ def get_sp_info_core(text: str, pat_list, tail: str = '') -> str:
     :param pat_list:
     :return:
     """
-    punc = ['。', '，', '；', '？', '！', '：', ',', '.', ';', ':', '?', '!', '（', '(']
     sub_pat1 = '|'.join(pat_list)
-    sub_pat2 = ''.join(punc)
-    pat = re.compile(r'({})[^{}]*{}'.format(sub_pat1, sub_pat2, tail))
+    sub_pat2 = ''.join(punc)+'、'+'（'+'('
+    pat = re.compile(r'({})([^{}]+){}'.format(sub_pat1, sub_pat2, tail))
     match = pat.search(text)
     if match:
         return match.group(0)
@@ -198,14 +201,14 @@ def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDi
     city_pat = re.compile('^.*(市|县)')
 
     # ------------------只取唯一可能项------------------------ #
-    pairs = [[alcohol, 'ac'],    # 1. 酒精
-             [money, 'mn'],      # 2. 金额
-             [penalty, 'pe']]   # 3. 主刑
+    pairs = [[alcohol, 'ac', 0],    # 1. 酒精
+             [money, 'mn', 0],      # 2. 金额
+             [penalty, 'pe', 0]]   # 3. 主刑
     for pair in pairs:
-        pool, key = pair
+        pool, key, i = pair
         temp = word_dict.get(key, [''])
-        if temp[0] != '':
-            pool.append(temp[0])
+        if temp[i] != '':
+            pool.append(temp[i])
 
     # ------------------单独处理法院------------------------ #
     tmp_court = word_dict.get('ct', [''])[0]
@@ -237,63 +240,6 @@ def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDi
         for i in word_dict.get(key, []):
             pool.append(i)
 
-    # with open(wFfilepath, 'r+') as wFfile:
-    #     # lines = wFfile.read().split('\n')
-    #     #
-    #     # cur = 0
-    #
-    #     # alcohol_line = lines[cur]
-    #     # cur += 1
-    #     # alcohol.append(alcohol_line.split('/')[0][2:])
-    #     # if alcohol[0] == '':
-    #     #     alcohol = []
-    #
-    #     # verdict_line = lines[cur]
-    #     # cur += 1
-    #     # verdict.append(verdict_line.split('/')[0][2:])
-    #     # money_line = lines[cur]
-    #     # cur += 1
-    #     # money.append(money_line.split('/')[0][2:])
-    #     #
-    #     # penalty_line = lines[cur]
-    #     # cur += 1
-    #     # penalty.append(penalty_line.split('/')[0][2:])
-    #
-    #     for line in lines[cur:]:
-    #         line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", line)
-    #         line = line.strip().replace('  ', ' ')
-    #         words = line.split(" ")
-    #
-    #         # if words[-1] == 're':
-    #         #     for word in words:
-    #         #         if re.search('(罚金|人民币).*元', word):
-    #         #             money.append(str(re.search('(罚金|人民币).*元', word).group(0)))
-    #         if words[-1] == 'nr':
-    #             name.append(words[0])
-    #         elif words[-1] == 'ct':
-    #             court.append(words[0])
-    #             # 提取省份
-    #             prov_match = prov_pat.search(words[0])
-    #             # case 1: 非直辖市
-    #             if prov_match:
-    #                 province.insert(0, prov_match.group(0))
-    #                 city_match = city_pat.search(words[0][prov_match.span()[1]:])
-    #                 if city_match:
-    #                     city.insert(0, city_match.group(0))
-    #             # case 2: 直辖市
-    #             else:
-    #                 city_match = city_pat.search(words[0])
-    #                 if city_match:
-    #                     city_name = city_match.group(0)
-    #                     province.insert(0, city_name)
-    #                     city.insert(0, city_name)
-    #         elif words[-1] == 'prov':
-    #             province.append(words[0])
-    #         elif words[-1] == 'city':
-    #             city.append(words[0])
-    #         elif words[-1] == 'cg':
-    #             accusation.append(words[0])
-
     # side cases
     # 1. 直辖市
     if len(city) == 0 and len(province) != 0 and province[0].endswith('市'):
@@ -304,12 +250,19 @@ def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDi
     # 3. 法院信息不规范
     if len(court) == 0 and len(province) != 0 and len(city) != 0:
         court.append('{}{}中级人民法院'.format(province[0], city[0]))
-    # 4. 罪名没找到
-    if len(accusation) == 0:
-        pat = re.compile(r'被告人(.*?)犯(.*?)罪')
-        match = pat.search(org_text)
-        if match:
-            accusation.append(match.group(0))
+    # 4. 罪名补充
+    punc_unit = ''.join(punc)
+    pat = re.compile(r'被告人([^{}]+?)犯([^{}]+?)罪'.format(punc_unit, punc_unit))
+    match = pat.search(org_text)
+    if match:
+        name = match.group(0).split('犯')[-1]
+        if len(name) > 1:
+            accusation.append(name)
+    # ------------------单独处理罪由------------------------ #
+    accu_freq_dict = {}
+    for accu in accusation:
+        accu_freq_dict[accu] = accu_freq_dict.get(accu, 0) + 1
+    accusation = sorted(sorted(accu_freq_dict.keys(), key=lambda x: len(x), reverse=True), key=lambda x: accu_freq_dict[x], reverse=True)
 
     result = OrderedDict()
     result['姓名'] = name

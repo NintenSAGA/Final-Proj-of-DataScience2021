@@ -310,7 +310,9 @@ class Panel:
                     tag = 'None'
                 else:
                     tag = tag_list[sel.get()]
-                entries.append('\t"{}": "{}"'.format(category, tag))
+                    if len(tag) >= 25:
+                        print('{}: {}似乎存在问题'.format(self.file_list[idx].split('.')[:3], category))
+                entries.append('\t"{}": "{}"'.format(category, tag.replace('"', "'")))
             f.write(',{}'.format(os.linesep).join(entries))
             f.write(os.linesep + '}')
 
