@@ -174,7 +174,7 @@ class Panel:
         try:
             year = int(year)
             delta_n = int(delta_n)
-            if year > 2021 or year < 2000 or delta_n > 2500:
+            if year > 2021 or year < 2000 or delta_n > 15000:
                 raise ValueError
             url_var, url_msg = check_url_list(0, delta_n, year)
             html_var, html_msg = check_html_list(0, delta_n, year)

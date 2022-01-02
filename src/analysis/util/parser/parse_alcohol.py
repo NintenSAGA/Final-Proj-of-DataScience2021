@@ -18,7 +18,7 @@ def parse_alcohol(word: str) -> float:
             if amount > 1000:
                 amount /= 100
             return amount
-        except ValueError:
+        except (ValueError, ZeroDivisionError):
             print('错误：{}中数字格式似乎存在问题'.format(word))
             return -1
     else:

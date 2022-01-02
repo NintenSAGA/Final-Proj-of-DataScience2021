@@ -1,8 +1,8 @@
 from src.crawling.common import refined_text_folder
-from src.analysis.util.parser import parse_ch_num
-from src.analysis.util.parser import parse_alcohol
+from src.analysis.util.parser import parse_ch_num, parse_alcohol, parse_penalty
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
 import json
 import re
@@ -13,12 +13,12 @@ json_list = {}
 for file in os.listdir(json_folder):
     if file.endswith('json'):
         try:
-            json_list[file] = json.load(open(json_folder + file, 'r'))
+            json_list[''.join(file.split('.')[:3])] = json.load(open(json_folder + file, 'r'))
         except json.decoder.JSONDecodeError:
             print(file)
 
 
-def find_alcohol():
+def parse_numeric_info():
     accu_freq_dict = {}
     res_list = []
 
@@ -32,26 +32,40 @@ def find_alcohol():
         if not accu.startswith('危险驾驶'):
             continue
 
+        penalty = j['主刑']
         fine = j['附加刑']
         alcohol = j['酒精含量']
-        if fine == 'None' or alcohol == 'None':
-            continue
-        amount = parse_alcohol(alcohol)
-        fine_num = parse_ch_num(fine)
-        if fine_num != -1:
-            res_list.append([j['时间'], j['省份'][:3], amount, fine_num, n])
-
-    return sorted(sorted(res_list, key=lambda x: x[3], reverse=True), key=lambda x: x[0], reverse=True)
+        j['附加刑'] = parse_ch_num(fine) if fine != 'None' else 0
+        j['酒精含量'] = parse_alcohol(alcohol) if alcohol != 'None' else 0
+        j['主刑'] = parse_penalty(penalty) if penalty != 'None' else 0
+        j['案件索引'] = n
+        res_list.append(j)
+    return res_list
 
 
 def run():
-    a = find_alcohol()      # 时间 : 省份 : 酒精 : 附加刑 : 标题
-    yax = []
-    xax = []
-    for l in a:
-        yax.append(l[3])
-        xax.append(l[2])
-    plt.scatter(xax, yax)
+    df = pd.DataFrame(parse_numeric_info())
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.max_rows', None)
+    df = df.loc[:, ['省份', '主刑', '附加刑', '酒精含量', '案件索引']]
+    df = df[df['酒精含量'] >= 80]
+    df = df[df['主刑'] <= 200]
+    df = df[df['附加刑'] < 12000]
+    df = df[df['省份'] == '山东省']      # type: pd.DataFrame
+
+    # Get Unique continents
+    color_labels = df['continent'].unique()
+
+    # List of colors in the color palettes
+    rgb_values = sns.color_palette("Set2", 4)
+
+    # Map continents to the colors
+    color_map = dict(zip(color_labels, rgb_values))
+
+    plt.rc('font', family='Hei')
+    df.plot.scatter('酒精含量', '附加刑', c='green')
+    df.plot.scatter('酒精含量', '主刑', c='blue')
+    df.plot.scatter('酒精含量', '附加刑', '主刑', c='主刑', cmap='coolwarm')
     plt.show()
 
 

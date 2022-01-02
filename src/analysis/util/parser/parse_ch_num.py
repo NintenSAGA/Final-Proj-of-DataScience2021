@@ -42,7 +42,7 @@ def parse_ch_num(word: str) -> int:
 
     if not match:
         print('错误：{}无法找到数字'.format(word))
-        raise ValueError
+        return -1
 
     num_s = pat.search(word).group(0)
 

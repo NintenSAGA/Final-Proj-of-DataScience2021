@@ -140,32 +140,26 @@ def get_alcohol(text) -> str:
     return alcohol
 
 
-def get_sp_info_core(text: str, pat_list, tail: str = '') -> str:
-    """
-    特别信息提取的抽象方法，特别针对{名词}[非标点符号]+
-
-    :param tail:
-    :param text:
-    :param pat_list:
-    :return:
-    """
-    sub_pat1 = '|'.join(pat_list)
-    sub_pat2 = ''.join(punc)+'、'+'（'+'('
-    pat = re.compile(r'({})([^{}]+){}'.format(sub_pat1, sub_pat2, tail))
-    match = pat.search(text)
-    if match:
-        return match.group(0)
-    return ''
-
-
 def get_penalty(text: str) -> str:
     """
-    获取刑罚时间：有期徒刑，拘役
+    获取刑罚时间：有期徒刑，拘役，管制，无期徒刑，死刑
 
     :return:
     """
-    penalties = ['管制', '拘役', '有期徒刑', '无期徒刑', '死刑']
-    return get_sp_info_core(text, penalties)
+    penalties = ['管制', '拘役', '有期徒刑']
+    sub_pat1 = '|'.join(penalties)
+    sub_pat2 = ''.join(punc)+'、'+'（'+'('
+    pat = re.compile(r'(判[^{}]*({})[^{}]+)'.format(sub_pat2, sub_pat1, sub_pat2))
+    match = pat.findall(text)
+    if len(match) > 0:
+        return match[-1][0]
+    pat_list = ['无期徒刑', '死刑']
+    sub_pat1 = '|'.join(pat_list)
+    pat = re.compile(r'(判[^{}]*({}))'.format(sub_pat2, sub_pat1))
+    match = pat.findall(text)
+    if len(match) > 0:
+        return match[-1][0]
+    return ''
 
 
 def get_money(text: str) -> str:
@@ -176,7 +170,13 @@ def get_money(text: str) -> str:
     :return:
     """
     actions = ['罚金', '没收']
-    return get_sp_info_core(text, actions, '元')
+    sub_pat1 = '|'.join(actions)
+    sub_pat2 = ''.join(punc)+'、'+'（'+'('
+    pat = re.compile(r'(({})[^{}]+元)'.format(sub_pat1, sub_pat2))
+    match = pat.findall(text)
+    if len(match) > 0:
+        return match[-1][0]
+    return ''
 
 
 # ==============================生成结果============================== #
@@ -252,17 +252,16 @@ def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDi
         court.append('{}{}中级人民法院'.format(province[0], city[0]))
     # 4. 罪名补充
     punc_unit = ''.join(punc)
-    pat = re.compile(r'被告人([^{}]+?)犯([^{}]+?)罪'.format(punc_unit, punc_unit))
-    match = pat.search(org_text)
-    if match:
-        name = match.group(0).split('犯')[-1]
-        if len(name) > 1:
-            accusation.append(name)
+    pat = re.compile(r'(被告人[^{}]+?犯([^{}]+罪))'.format(punc_unit, punc_unit))
+    match = pat.findall(org_text)
+    for temp in match:
+        accusation.append(temp[1])
     # ------------------单独处理罪由------------------------ #
     accu_freq_dict = {}
     for accu in accusation:
         accu_freq_dict[accu] = accu_freq_dict.get(accu, 0) + 1
-    accusation = sorted(sorted(accu_freq_dict.keys(), key=lambda x: len(x), reverse=True), key=lambda x: accu_freq_dict[x], reverse=True)
+    accusation = sorted(sorted(accu_freq_dict.keys(), key=lambda x: len(x), reverse=True),
+                        key=lambda x: accu_freq_dict.get(x), reverse=True)
 
     result = OrderedDict()
     result['姓名'] = name

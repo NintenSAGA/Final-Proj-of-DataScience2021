@@ -107,7 +107,7 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
 
     time.sleep(2)
     # 选择普通案例
-    edge.find_element(By.XPATH, "//li[9]/a/span").click()
+    edge.find_element(By.XPATH, "//li[10]/a/span").click()
     write_msg('Log: 已选择普通案例')
 
     time.sleep(2)
@@ -152,7 +152,10 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
             else:
                 edge.find_element(By.XPATH, '//div[10]/div/div/a').click()
                 time.sleep(1)
-                edge.find_element(By.XPATH, "//div[10]/div/ul/li[{}]/a/span".format(2022-year)).click()
+                # 获取年份
+                this_year = edge.find_element(By.XPATH, "//div[10]/div/ul/li[1]/a/span").text.strip()[:4]
+                this_year = int(this_year)
+                edge.find_element(By.XPATH, "//div[10]/div/ul/li[{}]/a/span".format(this_year-year + 1)).click()
                 time.sleep(2)
                 break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):

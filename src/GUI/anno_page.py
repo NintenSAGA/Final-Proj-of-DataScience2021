@@ -305,14 +305,12 @@ class Panel:
             for category in self.tags.keys():
                 sel, tag_list = self.tags[category]
                 if len(tag_list) == 0:
-                    if category in ['省份', '罪名', '主刑']:
-                        print('{}: 不存在{}'.format(self.file_list[idx].split('.')[:3], category))
+                    if category in ['省份', '罪名']:
+                        print('{}: 不存在{}'.format('.'.join(self.file_list[idx].split('.')[:3]), category))
                     tag = 'None'
                 else:
                     tag = tag_list[sel.get()]
-                    if len(tag) >= 25:
-                        print('{}: {}似乎存在问题'.format(self.file_list[idx].split('.')[:3], category))
-                entries.append('\t"{}": "{}"'.format(category, tag.replace('"', "'")))
+                entries.append('\t"{}": "{}"'.format(category, str(tag).replace('"', "'")))
             f.write(',{}'.format(os.linesep).join(entries))
             f.write(os.linesep + '}')
 
