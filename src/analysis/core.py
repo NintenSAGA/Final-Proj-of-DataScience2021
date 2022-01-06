@@ -2,7 +2,9 @@ from src.crawling.common import refined_text_folder
 from src.analysis.util.parser import parse_ch_num, parse_alcohol, parse_penalty
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
+from sklearn.decomposition import PCA
 import numpy as np
 import json
 import re
@@ -47,25 +49,49 @@ def run():
     df = pd.DataFrame(parse_numeric_info())
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
-    df = df.loc[:, ['省份', '主刑', '附加刑', '酒精含量', '案件索引']]
+    # df = df.loc[:, ['省份', '主刑', '附加刑', '酒精含量', '案件索引']]
     df = df[df['酒精含量'] >= 80]
     df = df[df['主刑'] <= 200]
     df = df[df['附加刑'] < 12000]
-    df = df[df['省份'] == '山东省']      # type: pd.DataFrame
+    df = df[df['省份'] == '广东省']      # type: pd.DataFrame
+    df = df.reset_index(drop=True)
 
     # Get Unique continents
-    color_labels = df['continent'].unique()
+    color_labels = df['省份'].unique()
 
     # List of colors in the color palettes
-    rgb_values = sns.color_palette("Set2", 4)
+    rgb_values = sns.color_palette("Set2", len(df['省份']))
 
     # Map continents to the colors
     color_map = dict(zip(color_labels, rgb_values))
 
-    plt.rc('font', family='Hei')
-    df.plot.scatter('酒精含量', '附加刑', c='green')
-    df.plot.scatter('酒精含量', '主刑', c='blue')
+    plt.rcParams["font.family"] = "Hei"
+
+    df.plot.scatter('酒精含量', '附加刑', c=df['省份'].map(color_map))
+    df.plot.scatter('酒精含量', '主刑', c=df['省份'].map(color_map))
     df.plot.scatter('酒精含量', '附加刑', '主刑', c='主刑', cmap='coolwarm')
+
+    alc = df.get('酒精含量')
+    a2d = df.loc[:, ['主刑', '附加刑']]
+    a1d = do_pca(a2d)
+
+    scatter_draw(alc, a1d)
+
+
+def do_pca(array):
+    r = array.sum()[1] / array.sum()[0]
+    array = array.dot(np.array([[1, 0], [0, 1/r]]))
+    pca = PCA(1)
+    pca.fit(array)
+    return pca.transform(array)
+
+
+def scatter_draw(a1, a2):
+    fig, ax = plt.subplots()
+    plt.rcParams["font.family"] = "Hei"
+    ax.scatter(a1, a2)
+    ax.set_xlabel('酒精含量')
+    ax.set_ylabel('主刑与附加刑的线性组合')
     plt.show()
 
 

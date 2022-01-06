@@ -22,9 +22,9 @@ jieba.load_userdict(DICTS_DIR + 'city_list.txt')
 jieba.load_userdict(DICTS_DIR + 'prov_list.txt')
 
 
-def get_result(text):
+def get_result(text) -> OrderedDict[str, list[str]]:
     """
-        param: text -> 文书所在文件夹路径
+        param: text -> 文书文本
         return: result -> OrderedDict[str,list[str]]
     """
 
@@ -65,20 +65,6 @@ def cal_word_freq(text: str) -> dict[str, list[str]]:
 
     return word_dict
 
-    # with open(WORK_DIR + 'wF.txt', 'w') as wFfile:
-    # for line in filtered_list:
-    #     for word in line:
-    #         s = str(word)
-    #         word_freq[s] = word_freq.get(s, 0) + 1
-    # sorted_word_freq = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
-    # wFfile.write("('{}/{}')\n".format(alcohol, 'ac'))
-    # wFfile.write("('{}/{}')\n".format(money, 'mn'))
-    # wFfile.write("('{}/{}')\n".format(penalty, 'pe'))
-    #
-    # for item in sorted_word_freq:
-    #     wFfile.write(item[0])
-    #     wFfile.write('\n')
-
 
 def text_filter(text) -> list[list]:
     """
@@ -97,18 +83,18 @@ def text_filter(text) -> list[list]:
     return filtered_lines
 
 
-def get_verdict(text: str):
-    """
-    根据文本格式，获得判决结果
-
-    :parameter text:文本 -> str
-    :return Verdict -> list
-    """
-    lines = text.split('\n')
-    for i, line in enumerate(lines):
-        if line.startswith('判决'):
-            return lines[i + 1]
-    return ''
+# def get_verdict(text: str):
+#     """
+#     根据文本格式，获得判决结果
+#
+#     :parameter text:文本 -> str
+#     :return Verdict -> list
+#     """
+#     lines = text.split('\n')
+#     for i, line in enumerate(lines):
+#         if line.startswith('判决'):
+#             return lines[i + 1]
+#     return ''
 
 
 def get_alcohol(text) -> str:
@@ -142,7 +128,7 @@ def get_alcohol(text) -> str:
 
 def get_penalty(text: str) -> str:
     """
-    获取刑罚时间：有期徒刑，拘役，管制，无期徒刑，死刑
+    获取主刑：有期徒刑，拘役，管制，无期徒刑，死刑
 
     :return:
     """
@@ -164,7 +150,7 @@ def get_penalty(text: str) -> str:
 
 def get_money(text: str) -> str:
     """
-    提取金额信息，含罚金与没收
+    提取附加刑，含罚金与没收
 
     :param text:
     :return:
@@ -183,6 +169,7 @@ def get_money(text: str) -> str:
 def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDict[str,list[str]]:
     """
         计算得到结果
+        :param org_text:
         :parameter word_dict: 词频字典
         :return result -> OrderedDict[str,list[str]]
     """
@@ -275,21 +262,3 @@ def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDi
 
     return result
 
-# def to_string(s):
-#     res = ""
-#     for word in s:
-#         res += (word + ' ')
-#     return res
-#
-#
-# def process_property(filePath):
-#     # 处理字典词性
-#     with open(filePath, 'r+') as file:
-#         text = file.read()
-#         lineList = text.split('\n')
-#
-#     with open(filePath, 'w+') as file:
-#         for line in lineList:
-#             file.write(''.join(line + '000' + '\n'))
-#
-#     file.close()
