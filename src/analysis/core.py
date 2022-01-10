@@ -7,7 +7,6 @@ import pandas as pd
 from sklearn.decomposition import PCA
 import numpy as np
 import json
-import re
 import os
 
 json_folder = refined_text_folder + 'json/'
@@ -46,44 +45,42 @@ def parse_numeric_info():
 
 
 def run():
-    df = pd.DataFrame(parse_numeric_info())
+    res_list = parse_numeric_info()
+    df = pd.DataFrame(res_list)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
     # df = df.loc[:, ['省份', '主刑', '附加刑', '酒精含量', '案件索引']]
     df = df[df['酒精含量'] >= 80]
-    df = df[df['主刑'] <= 200]
+    df = df[df['酒精含量'] <= 220]
+    df = df[df['主刑'] <= 300]
     df = df[df['附加刑'] < 12000]
     df = df[df['省份'] == '广东省']      # type: pd.DataFrame
     df = df.reset_index(drop=True)
 
+    show_overview(df)
+
+
+def show_overview(df):
     # Get Unique continents
     color_labels = df['省份'].unique()
-
     # List of colors in the color palettes
     rgb_values = sns.color_palette("Set2", len(df['省份']))
-
     # Map continents to the colors
     color_map = dict(zip(color_labels, rgb_values))
-
     plt.rcParams["font.family"] = "Hei"
-
-    df.plot.scatter('酒精含量', '附加刑', c=df['省份'].map(color_map))
-    df.plot.scatter('酒精含量', '主刑', c=df['省份'].map(color_map))
-    df.plot.scatter('酒精含量', '附加刑', '主刑', c='主刑', cmap='coolwarm')
-
+    for func in [lambda: sns.scatterplot(data=df, x='酒精含量', y='附加刑', c=df['省份'].map(color_map)),
+                 lambda: sns.scatterplot(data=df, x='酒精含量', y='主刑', c=df['省份'].map(color_map))]:
+        paint_graph(func)
     alc = df.get('酒精含量')
     a2d = df.loc[:, ['主刑', '附加刑']]
     a1d = do_pca(a2d)
 
-    scatter_draw(alc, a1d)
+    # scatter_draw(alc, a1d)
 
 
-def do_pca(array):
-    r = array.sum()[1] / array.sum()[0]
-    array = array.dot(np.array([[1, 0], [0, 1/r]]))
-    pca = PCA(1)
-    pca.fit(array)
-    return pca.transform(array)
+def paint_graph(func):
+    func()
+    plt.show()
 
 
 def scatter_draw(a1, a2):
@@ -92,7 +89,14 @@ def scatter_draw(a1, a2):
     ax.scatter(a1, a2)
     ax.set_xlabel('酒精含量')
     ax.set_ylabel('主刑与附加刑的线性组合')
-    plt.show()
+
+
+def do_pca(array):
+    r = array.sum()[1] / array.sum()[0]
+    array = array.dot(np.array([[1, 0], [0, 1/r]]))
+    pca = PCA(1)
+    pca.fit(array)
+    return pca.transform(array)
 
 
 if __name__ == '__main__':
