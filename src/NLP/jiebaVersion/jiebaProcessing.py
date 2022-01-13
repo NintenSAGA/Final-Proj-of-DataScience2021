@@ -1,50 +1,115 @@
 import jieba
 import re
-import time
+import pickle
 import jieba.posseg as pseg
-import sys
 from src import NLP
 from collections import OrderedDict
 
-# 全国法院名单.txt
-jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/全国法院名单.txt')
-
-# 罪名.txt
-jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/罪名.txt')
+WORK_DIR = NLP.__path__[0] + '/jiebaVersion/'
+DICTS_DIR = WORK_DIR + 'user_dicts/'
+CITY_TO_PROV = pickle.load(open(WORK_DIR + 'city_to_prov.pkl', 'rb'))  # type: {str, str}
+punc = ['。', '，', '；', '？', '！', '：', ',', '.', ';', ':', '?', '!', '（',
+        '】']
 
 # 其他需要增加权重的词语
-jieba.load_userdict(NLP.__path__[0]+'/jiebaVersion/userdict.txt')
+jieba.load_userdict(DICTS_DIR + 'userdict.txt')
+# court_list.txt
+jieba.load_userdict(DICTS_DIR + 'court_list.txt')
+# accusation_list.txt
+jieba.load_userdict(DICTS_DIR + 'accusation_list.txt')
+# 省份与城市
+jieba.load_userdict(DICTS_DIR + 'city_list.txt')
+jieba.load_userdict(DICTS_DIR + 'prov_list.txt')
 
 
-def get_verdict(text):
+def get_result(text) -> OrderedDict[str, list[str]]:
     """
-    根据文本格式，获得判决结果
+        param: text -> 文书文本
+        return: result -> OrderedDict[str,list[str]]
+    """
+
+    return parse_word_freq(cal_word_freq(text), text)
+
+
+# ==============================计算词频============================== #
+def cal_word_freq(text: str) -> dict[str, list[str]]:
+    """
+     获得分词后每个词的词性以及词频，并按词性分类，按词频排序，并返回字典
+
+     :parameter text：待切割的文本
+     :return: dict
+    """
+    filtered_list = text_filter(text)
+    alcohol = get_alcohol(text)
+    penalty = get_penalty(text)
+    money = get_money(text)
+
+    word_dict = {}
+
+    word_freq = {}
+    for words in filtered_list:
+        for word in words:
+            s = str(word)
+            word_freq[s] = word_freq.get(s, 0) + 1
+    sorted_words = sorted(word_freq.keys(), key=lambda x: word_freq[x], reverse=True)
+
+    word_dict['ac'] = [alcohol]
+    word_dict['mn'] = [money]
+    word_dict['pe'] = [penalty]
+
+    for item in sorted_words:
+        word, prop = item.split('/')
+        temp = word_dict.get(prop, list())
+        temp.append(word)
+        word_dict[prop] = temp
+
+    return word_dict
+
+
+def text_filter(text) -> list[list]:
+    """
+    处理文本，过滤标点符号，并返回list
 
     :parameter text:文本 -> str
-    :return Verdict -> list
+    :return filterLines:过滤后的文本 -> list
     """
-
+    filtered_lines = []
     lines = text.split('\n')
-    for i in range(len(lines)):
-        if ("判决如下" or "判决结果" or "判决主文") in lines[i]:
-            return lines[i+1]
+    for line in lines:
+        line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", "", line)
+        if line != '':
+            filtered_lines.append(list(pseg.cut(line, True)))
 
-    return ''
+    return filtered_lines
 
 
-def get_danger_info(text):
+# def get_verdict(text: str):
+#     """
+#     根据文本格式，获得判决结果
+#
+#     :parameter text:文本 -> str
+#     :return Verdict -> list
+#     """
+#     lines = text.split('\n')
+#     for i, line in enumerate(lines):
+#         if line.startswith('判决'):
+#             return lines[i + 1]
+#     return ''
+
+
+def get_alcohol(text) -> str:
     """
     得到危险驾驶信息
 
     :parameter text:文本 -> str
     :return danInfo -> str
     """
+    alcohol = ''
 
-    lines = text.split('\n')
-    danInfo = ''
-
-    mea_a = ['ｍｇ', 'mg', '毫克']
-    mea_b = ['ｍｌ', 'ml', '毫升']
+    mea_a = ['ｍｇ', 'mg', '毫克', 'mG', 'ｍＧ', 'MG', 'Mg', 'ＭＧ', 'Ｍｇ']
+    mea_b = ['ｍｌ', 'ml', '毫升', 'mL', 'ｍＬ', 'ML', 'Ml', 'ＭＬ', 'Ｍｌ', 'ｍ1']
+    # ｍｌＭＬＭＧｍｇ
+    # 162.28ｍｇ／100ｍ1
     num = '\\d+(\\.\\d+)?'
 
     p = '{}({})[^{}]+({})?({})'.format(num, '|'.join(mea_a), ''.join(mea_a) + ''.join(mea_b), num, '|'.join(mea_b))
@@ -55,196 +120,145 @@ def get_danger_info(text):
     match = pattern.search(text, pos)
     while match:
         pos = match.span()[1]
-        danInfo = match.group(0)
+        alcohol = match.group(0)
         match = pattern.search(text, pos)
 
-    return danInfo
-
-    #
-    # for i in range(len(lines)):
-    #     if re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL):
-    #         danInfo = re.search(r'\d+(\.\d+)?(ｍｇ|mg|毫克).+\d+(ｍｌ|ml|mL|毫升)', lines[i], re.DOTALL).group(0)
-    #         break
-    #
-    # return danInfo
+    return alcohol
 
 
-def process_property(filePath):
-    # 处理字典词性
-    with open(filePath, 'r+') as file:
-        text = file.read()
-        lineList = text.split('\n')
-
-    with open(filePath, 'w+') as file:
-        for line in lineList:
-            file.write(''.join(line+'000'+'\n'))
-
-    file.close()
-
-
-def process_text(text):
+def get_penalty(text: str) -> str:
     """
-    处理文本，过滤标点符号，并返回list
+    获取主刑：有期徒刑，拘役，管制，无期徒刑，死刑
 
-    :parameter text:文本 -> str
-    :return filterLines:过滤后的文本 -> list
+    :return:
     """
-    filterLines = []
-    lines = text.split('\n')
-    for line in lines:
-        line = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", "", line)
-        if line != '':
-            filterLines.append(list(pseg.cut(line, True)))
+    penalties = ['管制', '拘役', '有期徒刑']
+    sub_pat1 = '|'.join(penalties)
+    sub_pat2 = ''.join(punc)+'、'+'（'+'('
+    pat = re.compile(r'(判[^{}]*({})[^{}]+)'.format(sub_pat2, sub_pat1, sub_pat2))
+    match = pat.findall(text)
+    if len(match) > 0:
+        return match[-1][0]
+    pat_list = ['无期徒刑', '死刑']
+    sub_pat1 = '|'.join(pat_list)
+    pat = re.compile(r'(判[^{}]*({}))'.format(sub_pat2, sub_pat1))
+    match = pat.findall(text)
+    if len(match) > 0:
+        return match[-1][0]
+    return ''
 
-    return filterLines
 
-
-def cal_word_frequency(text):
+def get_money(text: str) -> str:
     """
-     获得分词后每个词的词性以及词频，并按词性分类，按词频排序，并写入 wF.txt
+    提取附加刑，含罚金与没收
 
-     :parameter tex(list)：待切割的文本
+    :param text:
+    :return:
     """
-    text1 = process_text(text)
-    verdict = get_verdict(text)
-    danInfo = get_danger_info(text)
-    wordFrequency = {}
-    with open(NLP.__path__[0]+'/jiebaVersion/wF.txt', 'w') as wFfile:
-        for line in text1:
-            for word in line:
-                if wordFrequency.get(str(word)):
-                    wordFrequency[str(word)] += 1
-                else:
-                    wordFrequency[str(word)] = 1
-
-        sortedwordFrequency = sorted(wordFrequency.items(), key=lambda x: x[1], reverse=True)
-        wFfile.write('(\'' + danInfo + '/ac' + '\')' + '\n')
-        wFfile.write('(\''+verdict + '/re' + '\')'+'\n')
-        for word in sortedwordFrequency:
-            wFfile.write(str(word) + '\n')
-    wFfile.close()
+    actions = ['罚金', '没收']
+    sub_pat1 = '|'.join(actions)
+    sub_pat2 = ''.join(punc)+'、'+'（'+'('
+    pat = re.compile(r'(({})[^{}]+元)'.format(sub_pat1, sub_pat2))
+    match = pat.findall(text)
+    if len(match) > 0:
+        return match[-1][0]
+    return ''
 
 
-def return_result(wFfilepath):
+# ==============================生成结果============================== #
+def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDict[str,list[str]]:
     """
         计算得到结果
-
-        :parameter wFfilepath: 词频文本路径
+        :param org_text:
+        :parameter word_dict: 词频字典
         :return result -> OrderedDict[str,list[str]]
     """
-    # 个人基本信息
-    personInfo = []
 
-    # 地区
-    province = []
+    name = []  # 个人基本信息
+    province = []  # 地区
     city = []
+    accusation = []  # 罪名
+    court = []  # 审理法院
+    # verdict = []  # 判决结果
+    money = []  # 涉案金额
+    alcohol = []  # 酒精含量
+    penalty = []  # 刑罚结果
 
-    # 罪名
-    case_cause = []
+    prov_pat = re.compile('^.*(省|自治区)')
+    city_pat = re.compile('^.*(市|县)')
 
-    # 审理法院
-    court = []
+    # ------------------只取唯一可能项------------------------ #
+    pairs = [[alcohol, 'ac', 0],    # 1. 酒精
+             [money, 'mn', 0],      # 2. 金额
+             [penalty, 'pe', 0]]   # 3. 主刑
+    for pair in pairs:
+        pool, key, i = pair
+        temp = word_dict.get(key, [''])
+        if temp[i] != '':
+            pool.append(temp[i])
 
-    # 判决结果
-    sentences = []
+    # ------------------单独处理法院------------------------ #
+    tmp_court = word_dict.get('ct', [''])[0]
+    if tmp_court != '':
+        court.append(tmp_court)
+        # 提取省份
+        prov_match = prov_pat.search(tmp_court)
+        # case 1: 非直辖市
+        if prov_match:
+            province.insert(0, prov_match.group(0))
+            city_match = city_pat.search(tmp_court[prov_match.span()[1]:])
+            if city_match:
+                city.insert(0, city_match.group(0))
+        # case 2: 直辖市
+        else:
+            city_match = city_pat.search(tmp_court)
+            if city_match:
+                city_name = city_match.group(0)
+                province.insert(0, city_name)
+                city.insert(0, city_name)
 
-    # 涉案金额
-    money = []
+    # ------------------多可能项------------------------ #
+    pairs = [[name, 'nr'],
+             [province, 'prov'],
+             [city, 'city'],
+             [accusation, 'cg']]
+    for pair in pairs:
+        pool, key = pair  # type: list, str
+        for i in word_dict.get(key, []):
+            pool.append(i)
 
-    # 酒精含量
-    dan_message = []
-
-    with open(wFfilepath, 'r+') as wFfile:
-        lines = wFfile.read().split('\n')
-
-        firstLine = lines[0]
-        dan_message.append(firstLine.split('/ac')[0].strip('(\''))
-        if dan_message[0] == '':
-            dan_message = []
-
-        secondLine = lines[1]
-        sentences.append(secondLine.split('/re')[0].strip("('"))
-
-        l = len(lines)-1
-        for i in range(1, l):
-            lines[i] = re.sub(u"([^\u4e00-\u9fa5\u0030-\u0039\u0041-\u005a\u0061-\u007a])", " ", lines[i])
-            lines[i] = lines[i].strip().replace('  ', ' ')
-            words = lines[i].split(" ")
-            if words[len(words)-1] == 're':
-                for word in words:
-                    if re.search('(罚金|人民币).*元', word):
-                        money.append(str(re.search('(罚金|人民币).*元', word).group(0)))
-            elif words[1] == 'nr':
-                personInfo.append(words[0])
-            elif words[1] == 'ct':
-                court.append(words[0])
-            elif words[1] == 'ns':
-                if words[0].endswith("省") or words[0].endswith("自治区"):
-                    province.append(words[0])
-                elif words[0].endswith("市"):
-                    city.append(words[0])
-            elif words[0].endswith("罪"):
-                if words[1] == 'cg':
-                    case_cause.append(words[0])
-                elif len(words[0]) == 3:
-                    case_cause.append(words[0])
+    # side cases
+    # 1. 直辖市
+    if len(city) == 0 and len(province) != 0 and province[0].endswith('市'):
+        city.append(province[0])
+    # 2. 未找到省份信息
+    if len(province) == 0 and len(city) != 0:
+        province.append(CITY_TO_PROV[city[0]])
+    # 3. 法院信息不规范
+    if len(court) == 0 and len(province) != 0 and len(city) != 0:
+        court.append('{}{}中级人民法院'.format(province[0], city[0]))
+    # 4. 罪名补充
+    punc_unit = ''.join(punc)
+    pat = re.compile(r'(被告人[^{}]+?犯([^{}]+罪))'.format(punc_unit, punc_unit))
+    match = pat.findall(org_text)
+    for temp in match:
+        accusation.append(temp[1])
+    # ------------------单独处理罪由------------------------ #
+    accu_freq_dict = {}
+    for accu in accusation:
+        accu_freq_dict[accu] = accu_freq_dict.get(accu, 0) + 1
+    accusation = sorted(sorted(accu_freq_dict.keys(), key=lambda x: len(x), reverse=True),
+                        key=lambda x: accu_freq_dict.get(x), reverse=True)
 
     result = OrderedDict()
-    result['姓名'] = personInfo
+    result['姓名'] = name
     result['省份'] = province
     result['城市'] = city
-    result['罪名'] = case_cause
     result['审理法院'] = court
-    result['判决结果'] = sentences
-    result['罚金金额'] = money
-    result['酒精含量'] = dan_message
+    result['罪名'] = accusation
+    result['主刑'] = penalty
+    result['附加刑'] = money
+    result['酒精含量'] = alcohol
 
-    # print(result)
     return result
-
-    # new_file_name = '/Users/lijiajun/Final-Proj-of-DataScience2021/src/NLP/jiebaVersion/~result/'+str(num)+'标注.txt'
-    # resultfile = open(new_file_name, 'w')
-    # resultfile.write(to_string(personInfo) + '\n')
-    # resultfile.write(to_string(province) + '\n')
-    # resultfile.write(to_string(city) + '\n')
-    # resultfile.write(to_string(case_cause) + '\n')
-    # resultfile.write(to_string(court) + '\n')
-    # resultfile.write(to_string(sentences) + '\n')
-    # resultfile.write(to_string(money) + '\n')
-    # resultfile.write(to_string(dan_message) + '\n')
-
-
-def to_string(s):
-    res = ""
-    for word in s:
-        res += (word + ' ')
-    return res
-
-
-def process_bar(num, total):
-    rate = float(num)/total
-    ratenum = int(100*rate)
-    r = '\r[{}{}]{}%'.format('*'*ratenum,' '*(100-ratenum), ratenum)
-    sys.stdout.write(r)
-    sys.stdout.flush()
-
-
-def get_result(text):
-    """
-        param: text -> 文书所在文件夹路径
-        return: result -> OrderedDict[str,list[str]]
-    """
-    # print("Log:获取文书路径")
-    # time.sleep(1)
-    # filepaths = get_all(source_text_path)
-    # print("Log:已获取")
-    # time.sleep(1)
-    # i = 0
-    # print("Log:开始处理")
-
-    cal_word_frequency(text)
-    return return_result(NLP.__path__[0]+'/jiebaVersion/wF.txt')
-    # i += 1
-    # process_bar(i, num)
-    # time.sleep(0.005)
 

@@ -107,7 +107,7 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
 
     time.sleep(2)
     # 选择普通案例
-    edge.find_element(By.XPATH, "//li[9]/a/span").click()
+    edge.find_element(By.XPATH, "//li[10]/a/span").click()
     write_msg('Log: 已选择普通案例')
 
     time.sleep(2)
@@ -152,7 +152,10 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
             else:
                 edge.find_element(By.XPATH, '//div[10]/div/div/a').click()
                 time.sleep(1)
-                edge.find_element(By.XPATH, "//div[10]/div/ul/li[{}]/a/span".format(2022-year)).click()
+                # 获取年份
+                this_year = edge.find_element(By.XPATH, "//div[10]/div/ul/li[1]/a/span").text.strip()[:4]
+                this_year = int(this_year)
+                edge.find_element(By.XPATH, "//div[10]/div/ul/li[{}]/a/span".format(this_year-year + 1)).click()
                 time.sleep(2)
                 break
         except (WebDriverException, ElementClickInterceptedException, NoSuchElementException):
@@ -213,8 +216,14 @@ def fetch_url(n: int, edge: Edge, from_n: int = 0, year=2021):
             if not count == n:
                 while True:
                     try:
-                        edge.find_element(By.XPATH,
-                                          '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li[8]/a').click()  # 翻页
+                        # edge.find_element(By.XPATH,
+                        #                   '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li[8]/a').click()  # 翻页
+                        next_bt = '//*[@id="rightContent"]/div[3]/div/div[2]/ul/li'
+                        elements = edge.find_elements(By.XPATH, next_bt)
+                        while not len(elements) > 0:
+                            time.sleep(0.5)
+                            elements = edge.find_elements(By.XPATH, next_bt)
+                        elements[-1].click()
                     except WebDriverException:
                         edge.set_window_position(0, 0)
                         write_msg('Log: 疑似出现验证码，请手动操作')
