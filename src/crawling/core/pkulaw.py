@@ -11,7 +11,6 @@ from selenium.webdriver import Edge
 from src.crawling.common import result_folder, html_path, log, update_progress_bar, write_msg
 from src.crawling.text_extract.pkulaw import import_cookies, retrieve_html_file, retrieve_text, noise_set
 from src.crawling import common
-from sortedcontainers import SortedSet
 
 from pygtrie import CharTrie
 
