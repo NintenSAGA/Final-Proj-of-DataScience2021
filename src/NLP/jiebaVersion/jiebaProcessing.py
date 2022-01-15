@@ -22,7 +22,7 @@ jieba.load_userdict(DICTS_DIR + 'city_list.txt')
 jieba.load_userdict(DICTS_DIR + 'prov_list.txt')
 
 
-def get_result(text) -> OrderedDict[str, list[str]]:
+def get_result(text) -> OrderedDict:
     """
         param: text -> 文书文本
         return: result -> OrderedDict[str,list[str]]
@@ -32,7 +32,7 @@ def get_result(text) -> OrderedDict[str, list[str]]:
 
 
 # ==============================计算词频============================== #
-def cal_word_freq(text: str) -> dict[str, list[str]]:
+def cal_word_freq(text: str) -> dict:
     """
      获得分词后每个词的词性以及词频，并按词性分类，按词频排序，并返回字典
 
@@ -66,7 +66,7 @@ def cal_word_freq(text: str) -> dict[str, list[str]]:
     return word_dict
 
 
-def text_filter(text) -> list[list]:
+def text_filter(text) -> list:
     """
     处理文本，过滤标点符号，并返回list
 
@@ -166,7 +166,7 @@ def get_money(text: str) -> str:
 
 
 # ==============================生成结果============================== #
-def parse_word_freq(word_dict: dict[str, list[str]], org_text: str) -> OrderedDict[str,list[str]]:
+def parse_word_freq(word_dict: dict, org_text: str) -> OrderedDict:
     """
         计算得到结果
         :param org_text:

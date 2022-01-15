@@ -16,7 +16,7 @@ from threading import Thread
 OM_WRAP_LEN = 30
 
 
-def grab_tags(text) -> OrderedDict[str, list[str]]:
+def grab_tags(text) -> OrderedDict:
     from src.NLP import get_result as get_tags
     if text == '':
         return OrderedDict()

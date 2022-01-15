@@ -12,7 +12,7 @@ from src.crawling.text_extract import str_insert
 browser = None
 
 
-def import_cookies(cookies: list[dict]):
+def import_cookies(cookies: list):
     """
     将 selenium 已有的cookie导入 mechanicalsoup
 
