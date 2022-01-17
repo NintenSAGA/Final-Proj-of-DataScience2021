@@ -50,11 +50,11 @@ def run():
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
     # df = df.loc[:, ['省份', '主刑', '附加刑', '酒精含量', '案件索引']]
-    df = df[df['酒精含量'] >= 80]
+    # df = df[df['酒精含量'] >= 80]
     df = df[df['酒精含量'] <= 220]
     df = df[df['主刑'] <= 300]
     df = df[df['附加刑'] < 12000]
-    df = df[df['省份'] == '广东省']      # type: pd.DataFrame
+    # df = df[df['省份'] == '广东省']      # type: pd.DataFrame
     df = df.reset_index(drop=True)
 
     show_overview(df)

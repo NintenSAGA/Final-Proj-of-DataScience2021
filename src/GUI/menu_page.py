@@ -1,4 +1,4 @@
-from tkinter import Frame, Button, Canvas, Tk
+from tkinter import Frame, Button, Canvas, Tk, CENTER
 from src.GUI import anno_page, crawler_page
 from src.GUI.common import get_ft
 # -*- coding: utf-8 -*-
@@ -21,10 +21,11 @@ class Application(Frame):
         self.obj_crawler_page = None
         self.frame = None
         self.build()
+        self.master.geometry("400x500+300+300")
 
     def build(self):
         self.master.resizable(False, False)
-        self.master.geometry("400x500+300+300")
+        self.master.geometry("400x500")
         self.master.title("自动化爬取和标注")
         self.frame = Frame(self.master)
         self.create_bt()
@@ -35,9 +36,9 @@ class Application(Frame):
     def create_bt(self):
         ft0 = get_ft(14)
         Button(self.frame, text="  爬取文书 ", bg="cadetblue", command=self.show_crawler_page, fg='black', font=ft0)\
-            .pack()
+            .pack(anchor='center', pady=100)
         Button(self.frame, text="自动化标注", bg="cadetblue", command=self.show_anno_page, fg='black', font=ft0)\
-            .pack()
+            .pack(anchor='center')
 
     def show_anno_page(self):
         self.frame.destroy()
