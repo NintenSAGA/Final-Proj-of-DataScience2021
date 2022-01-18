@@ -1,5 +1,6 @@
 from src.crawling.common import refined_text_folder
 from src.analysis.util.parser import parse_ch_num, parse_alcohol, parse_penalty
+from src.analysis import util, json_folder
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -9,23 +10,14 @@ import numpy as np
 import json
 import os
 
-json_folder = refined_text_folder + 'json/'
-json_list = {}
-for file in os.listdir(json_folder):
-    if file.endswith('json'):
-        try:
-            json_list[''.join(file.split('.')[:3])] = json.load(open(json_folder + file, 'r'))
-        except json.decoder.JSONDecodeError:
-            print(file)
+json_list = util.json_reader(json_folder+'2021')
 
 
 def parse_numeric_info():
     accu_freq_dict = {}
     res_list = []
 
-    for j in json_list.items():
-        n = j[0]
-        j = j[1]
+    for j in json_list:
         if not j['时间'].startswith('2021'):
             continue
         accu = j['罪名']
@@ -39,7 +31,6 @@ def parse_numeric_info():
         j['附加刑'] = parse_ch_num(fine) if fine != 'None' else 0
         j['酒精含量'] = parse_alcohol(alcohol) if alcohol != 'None' else 0
         j['主刑'] = parse_penalty(penalty) if penalty != 'None' else 0
-        j['案件索引'] = n
         res_list.append(j)
     return res_list
 
@@ -50,26 +41,29 @@ def run():
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows', None)
     # df = df.loc[:, ['省份', '主刑', '附加刑', '酒精含量', '案件索引']]
-    # df = df[df['酒精含量'] >= 80]
-    df = df[df['酒精含量'] <= 220]
-    df = df[df['主刑'] <= 300]
-    df = df[df['附加刑'] < 12000]
-    # df = df[df['省份'] == '广东省']      # type: pd.DataFrame
+    df = df[df['酒精含量'] >= 80]
+    df = df[df['酒精含量'] <= 300]
+    df = df[df['主刑'] <= 200]
+    df = df[df['主刑'] >= 30]
+    df = df[df['附加刑'] >= 1000]
+    df = df[df['附加刑'] < 22000]
+    df_all = df
+    df = df[df['省份'] == '湖南省']      # type: pd.DataFrame
     df = df.reset_index(drop=True)
 
-    show_overview(df)
+    show_overview(df, df_all)
 
 
-def show_overview(df):
+def show_overview(df, df_all):
     # Get Unique continents
-    color_labels = df['省份'].unique()
+    color_labels = df_all['省份'].unique()
     # List of colors in the color palettes
-    rgb_values = sns.color_palette("Set2", len(df['省份']))
+    rgb_values = sns.color_palette("Set2", len(df_all['省份']))
     # Map continents to the colors
     color_map = dict(zip(color_labels, rgb_values))
     plt.rcParams["font.family"] = "Hei"
-    for func in [lambda: sns.scatterplot(data=df, x='酒精含量', y='附加刑', c=df['省份'].map(color_map)),
-                 lambda: sns.scatterplot(data=df, x='酒精含量', y='主刑', c=df['省份'].map(color_map))]:
+    for func in [lambda: sns.scatterplot(data=df, x='酒精含量', y='附加刑'),
+                 lambda: sns.scatterplot(data=df, x='酒精含量', y='主刑')]:
         paint_graph(func)
     alc = df.get('酒精含量')
     a2d = df.loc[:, ['主刑', '附加刑']]
