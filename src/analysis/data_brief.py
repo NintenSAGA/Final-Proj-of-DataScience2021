@@ -74,4 +74,4 @@ if __name__ == '__main__':
     # year_list = [show_brief(year) for year in '2020 2021'.split()]
     # print(util.table_generator('年份 文书总数 危险驾驶总数 危险驾驶占比 醉驾总数 醉驾占危险驾驶占比'.split(), year_list))
     # print(util.table_generator('排名 罪名 数量 占比'.split(), crime_brief('2021')))
-    print(util.table_generator('省级行政区 文书总数 危险驾驶总数 危险驾驶占比 醉驾总数 醉驾占危险驾驶占比'.split(), region_brief('2021', 2)))
+    print(util.table_generator('省级行政区 文书总数 危险驾驶总数 危险驾驶占比 醉驾总数 醉驾占危险驾驶占比'.split(), region_brief('2021', 0)))

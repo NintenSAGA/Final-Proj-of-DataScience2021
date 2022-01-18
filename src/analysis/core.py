@@ -51,11 +51,16 @@ def run():
     # df = df[df['省份'] == '广东省']  # type: pd.DataFrame
     # df = df.reset_index(drop=True)
     data = []
-    for prov in "山东省 广东省 湖南省".split():
+    prov_set = set()
+    for prov in '山东 云南 吉林 广东 辽宁 甘肃 陕西 河南 湖南 四川'.split():
+        if prov != 'None':
+            prov_set.add(prov[:2])
+    for prov in prov_set:
         data.append(prov_check(df, prov))
-    print(util.table_generator('省份 rho1 p-value1 rho2 p-value2'.split(), data))
+    data.sort(key=lambda x: x[1], reverse=True)
+    print(util.table_generator('省份 r1 p-value1 r2 p-value2'.split(), data))
 
-    # show_overview(df, df_all)
+    show_overview(df[df['省份'] == '河南省'], df_all)
 
 
 def prov_check(df: pd.DataFrame, prov: str) -> list:
@@ -68,19 +73,24 @@ def prov_check(df: pd.DataFrame, prov: str) -> list:
     :return:
     """
     def t_test(r, n):
+        if (1 - math.pow(r, 2)) == 0:
+            return math.inf
         return r * math.sqrt(float(n - 2) / (1 - math.pow(r, 2)))
     ret = [prov]
-    df = df[df['省份'] == prov]
+    df = df[df['省份'].str.startswith(prov)]
     df = df.reset_index(drop=True)
     x = df['酒精含量']
     y1 = df['附加刑']
     y2 = df['主刑']
+    x = y1
     nn = x.__len__()
-    for y in (y1, y2):
+    for y in [y1, y2]:
         rho = x.corr(y)
         tt = t_test(rho, nn)
-        p_value = t.cdf(tt, nn - 2)
+        p_value = (1-t.cdf(abs(tt), nn - 2)) * 2
         ret += ["%.4f" % rho, "%.4f" % p_value]
+        if p_value <= 0.05:
+            ret[-1] = '**{}**'.format(ret[-1])
     return ret
 
 
