@@ -7,7 +7,7 @@ import seaborn as sns
 import pandas as pd
 from sklearn.decomposition import PCA
 import numpy as np
-from scipy.stats import t
+from scipy.stats import t, normaltest
 import math
 
 json_list = util.json_reader(json_folder + '2021')
@@ -18,6 +18,8 @@ color_labels = prov_list
 rgb_values = sns.color_palette("Set2", len(prov_list))
 # Map continents to the colors
 color_map = dict(zip(color_labels, rgb_values))
+
+alpha = 0.001
 
 
 def parse_numeric_info():
@@ -56,10 +58,49 @@ def run():
     df = df[df['附加刑'] < 22000]
     data = []
     for prov in prov_list:
-        show_overview(df, prov)
-        data.append(prov_check(df, prov))
+        # data.append(prov_norm_test(df, prov))
+        data.append(prov_distribution(df, prov, '主刑'))
+        # show_overview(df, prov)
+        # data.append(prov_check(df, prov))
     data.sort(key=lambda x: x[1], reverse=True)
-    print(util.table_generator('省份 r1 p-value1 r2 p-value2'.split(), data))
+    print(util.table_generator('省份 平均值 标准差 最小值 最大值'.split(), data))
+
+
+def prov_distribution(df: pd.DataFrame, prov: str, factor: str = '酒精含量') -> list:
+    """
+    各省份酒精含量的数据分布情况
+    省份 平均值 标准差 最小值 最大值
+    :param factor:
+    :param df:
+    :param prov:
+    :return:
+    """
+    ret = [prov]
+    df = df[df['省份'].str.startswith(prov)]
+    df = df.reset_index(drop=True)
+    des = df[factor].describe()
+    for key in "mean std min max".split():
+        ret.append("%.2f" % des[key])
+    return ret
+
+
+def prov_norm_test(df: pd.DataFrame, prov: str) -> list:
+    """
+    对各省份酒精样本做正态检验，返回列表，包含：
+    省份 偏度峰度检验统计量 p-value
+    :param df:
+    :param prov:
+    :return:
+    """
+    ret = [prov]
+    df = df[df['省份'].str.startswith(prov)]
+    df = df.reset_index(drop=True)
+    x = df['酒精含量']
+    sta, p_value = normaltest(x.to_numpy())
+    ret += ["%.4f" % sta, "%.4f" % p_value]
+    if p_value <= alpha:
+        ret[-1] = '**{}**'.format(ret[-1])
+    return ret
 
 
 def prov_check(df: pd.DataFrame, prov: str) -> list:
@@ -87,7 +128,7 @@ def prov_check(df: pd.DataFrame, prov: str) -> list:
         tt = t_test(rho, nn)
         p_value = (1-t.cdf(abs(tt), nn - 2)) * 2
         ret += ["%.4f" % rho, "%.4f" % p_value]
-        if p_value <= 0.05:
+        if p_value <= alpha:
             ret[-1] = '**{}**'.format(ret[-1])
     return ret
 
