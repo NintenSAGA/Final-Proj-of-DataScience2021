@@ -11,6 +11,13 @@ from scipy.stats import t
 import math
 
 json_list = util.json_reader(json_folder + '2021')
+prov_list = '山东 云南 广东 辽宁 湖南 四川 江苏 浙江 北京 广西'.split()
+# Get Unique continents
+color_labels = prov_list
+# List of colors in the color palettes
+rgb_values = sns.color_palette("Set2", len(prov_list))
+# Map continents to the colors
+color_map = dict(zip(color_labels, rgb_values))
 
 
 def parse_numeric_info():
@@ -47,20 +54,12 @@ def run():
     df = df[df['主刑'] >= 30]
     df = df[df['附加刑'] >= 1000]
     df = df[df['附加刑'] < 22000]
-    df_all = df
-    # df = df[df['省份'] == '广东省']  # type: pd.DataFrame
-    # df = df.reset_index(drop=True)
     data = []
-    prov_set = set()
-    for prov in '山东 云南 吉林 广东 辽宁 甘肃 陕西 河南 湖南 四川'.split():
-        if prov != 'None':
-            prov_set.add(prov[:2])
-    for prov in prov_set:
+    for prov in prov_list:
+        show_overview(df, prov)
         data.append(prov_check(df, prov))
     data.sort(key=lambda x: x[1], reverse=True)
     print(util.table_generator('省份 r1 p-value1 r2 p-value2'.split(), data))
-
-    show_overview(df[df['省份'] == '河南省'], df_all)
 
 
 def prov_check(df: pd.DataFrame, prov: str) -> list:
@@ -82,7 +81,6 @@ def prov_check(df: pd.DataFrame, prov: str) -> list:
     x = df['酒精含量']
     y1 = df['附加刑']
     y2 = df['主刑']
-    x = y1
     nn = x.__len__()
     for y in [y1, y2]:
         rho = x.corr(y)
@@ -94,26 +92,24 @@ def prov_check(df: pd.DataFrame, prov: str) -> list:
     return ret
 
 
-def show_overview(df, df_all):
-    # Get Unique continents
-    color_labels = df_all['省份'].unique()
-    # List of colors in the color palettes
-    rgb_values = sns.color_palette("Set2", len(df_all['省份']))
-    # Map continents to the colors
-    color_map = dict(zip(color_labels, rgb_values))
+def show_overview(df, prov: str):
+    df_all = df
+    df = df[df['省份'].str.startswith(prov)]
+
     plt.rcParams["font.family"] = "Hei"
-    for func in [lambda: sns.scatterplot(data=df, x='酒精含量', y='附加刑'),
-                 lambda: sns.scatterplot(data=df, x='酒精含量', y='主刑')]:
-        paint_graph(func)
-    alc = df.get('酒精含量')
-    a2d = df.loc[:, ['主刑', '附加刑']]
-    a1d = do_pca(a2d)
+    for func in [lambda: sns.scatterplot(data=df, x='酒精含量', y='附加刑', color=color_map[prov]),
+                 lambda: sns.scatterplot(data=df, x='酒精含量', y='主刑', color=color_map[prov])]:
+        paint_graph(func, prov)
+    # alc = df.get('酒精含量')
+    # a2d = df.loc[:, ['主刑', '附加刑']]
+    # a1d = do_pca(a2d)
 
     # scatter_draw(alc, a1d)
 
 
-def paint_graph(func):
+def paint_graph(func, prov):
     func()
+    plt.title(prov)
     plt.show()
 
 

@@ -46,7 +46,7 @@ def region_brief(year: str, sort_key: int = 0) -> list:
     ret = []
     for prov in prov_set:
         ret.append(show_brief_with_given(list(filter(lambda x: x['省份'].startswith(prov), raw_list)), prov))
-    return sorted(filter(lambda x: int(x[1]) >= 100, ret), key=lambda x: float(x[1 + sort_key].strip('%')), reverse=True)
+    return sorted(filter(lambda x: int(x[1]) >= 162, ret), key=lambda x: float(x[1 + sort_key].strip('%')), reverse=True)
 
 
 def crime_brief(year: str) -> list:
@@ -74,4 +74,4 @@ if __name__ == '__main__':
     # year_list = [show_brief(year) for year in '2020 2021'.split()]
     # print(util.table_generator('年份 文书总数 危险驾驶总数 危险驾驶占比 醉驾总数 醉驾占危险驾驶占比'.split(), year_list))
     # print(util.table_generator('排名 罪名 数量 占比'.split(), crime_brief('2021')))
-    print(util.table_generator('省级行政区 文书总数 危险驾驶总数 危险驾驶占比 醉驾总数 醉驾占危险驾驶占比'.split(), region_brief('2021', 0)))
+    print(util.table_generator('省级行政区 文书总数 危险驾驶总数 危险驾驶占比 醉驾总数 醉驾占危险驾驶占比'.split(), region_brief('2021', 2)))
