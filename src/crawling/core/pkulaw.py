@@ -75,8 +75,6 @@ def crawl_pkulaw(n: int, edge: Edge, from_n, skip_fu, skip_rhf, year, debug_mode
                 write_msg('处理失败！\n')
             count += 1
 
-    # if len(noise_set) != org_len:
-    #     log.append('噪音条目由{}条增加至{}条'.format(org_len, len(noise_set)))
     with open(result_folder + 'log.txt', 'w') as l:
         l.write(os.linesep.join(log))
 
