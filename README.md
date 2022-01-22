@@ -109,16 +109,7 @@ Final-Proj-of-DataScience2021
         │   ├── gov.py              # 中华人民共和国最高人民法院公报（已废弃）
         │   └── pkulaw.py           # 北大法宝         
         ├── results                 # 爬取结果
-        │   ├── 2005_url_list.txt   #############
-        │   ├── 2011_url_list.txt   # 从2005年
-        │   ├── 2012_url_list.txt   # 
-        │   ├── 2015_url_list.txt   # 
-        │   ├── 2016_url_list.txt   # 
-        │   ├── 2017_url_list.txt   # 到
-        │   ├── 2018_url_list.txt   # 
-        │   ├── 2019_url_list.txt   # 
-        │   ├── 2020_url_list.txt   # 2021年的链接
-        │   ├── 2021_url_list.txt   #############
+        │   ├── 20xx_url_list.txt   # 20xx年的url列表
         │   ├── log.txt             # 爬取运行日志
         │   ├── noise_set.pkl       # 噪音字典
         │   ├── ~html               # html缓存（开始不存在）
