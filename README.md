@@ -1,5 +1,9 @@
  # 数据科学基础2021 大作业
 
+![Python_version](https://img.shields.io/badge/Python-3.9-white?style=flat&logo=python&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-macOS_|_Windows-white)
+![Platform](https://img.shields.io/badge/Browser-Edge-white)
+
 此项目为南京大学软件学院“数据科学基础2021秋”期末大作业
 
 **主题**：司法大数据自动化标注与分析
