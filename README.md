@@ -49,6 +49,88 @@
 
 [文书纯文本及标注数据（5842份）](./docsets/文书纯文本及标注数据（5842份）.zip)
 
+### 1.4 项目结构
+
+```
+Final-Proj-of-DataScience2021
+├── README.md                               # 本文件
+├── docsets                                 # 文档集
+│   ├── docsets.assets                      # md附件
+│   ├── 初期汇报文稿.md
+│   ├── 开发日志.md
+│   ├── 文书纯文本及标注数据（5842份）.zip
+│   ├── 研究报告(上)-系统概述.md
+│   ├── 研究报告(上)-系统概述.pdf
+│   ├── 研究报告(下)-数据分析报告.md
+│   └── 研究报告(下)-数据分析报告.pdf
+├── main.py                   # 可执行程序
+├── requirement.txt           # 支持库
+└── src                       # 源码
+    ├── GUI                   # 界面模块
+    │   ├── __init__.py
+    │   ├── anno_page.py      # 标注页面
+    │   ├── common.py         # 通用定义
+    │   ├── crawler_page.py   # 爬虫页面
+    │   ├── menu_page.py      # 菜单页面
+    ├── NLP                                 # 自动化标注模块
+    │   ├── __init__.py
+    │   └── jiebaVersion                    # 结巴分词
+    │       ├── __init__.py
+    │       ├── city_to_prov.pkl            # 城市到省份，逆向词典
+    │       ├── jiebaProcessing.py
+    │       ├── user_dicts                  # 用户词典
+    │           ├── accusation_list.txt     # 罪名
+    │           ├── city_list.txt           # 城市
+    │           ├── court_list.txt          # 法院
+    │           ├── prov_list.txt           # 省份
+    │           └── userdict.txt            # 其余
+    ├── __init__.py
+    ├── analysis              # 数据分析
+    │   ├── __init__.py
+    │   ├── core.py           # 测试核心
+    │   ├── data_brief.py     # 数据概览
+    │   └── util              # 工具
+    │       ├── __init__.py
+    │       └── parser        # 解析器
+    │           ├── __init__.py
+    │           ├── parse_alcohol.py    # 酒精解析器
+    │           ├── parse_ch_num.py     # 中文数字解析器（附加刑解析）
+    │           └── parse_penalty.py    # 主刑解析器
+    └── crawling                        # 爬虫模块
+        ├── Webdriver                   # Webdriver 内核
+        │   └── Edge                    # Edge
+        │       ├── msedgedriver        # macOS用
+        │       └── msedgedriver.exe    # Windows用
+        ├── __init__.py
+        ├── common.py               # 通用定义
+        ├── core                    # 核心模块
+        │   ├── __init__.py
+        │   ├── core_function.py    # 核心方法
+        │   ├── gov.py              # 中华人民共和国最高人民法院公报（已废弃）
+        │   └── pkulaw.py           # 北大法宝         
+        ├── results                 # 爬取结果
+        │   ├── 2005_url_list.txt   #############
+        │   ├── 2011_url_list.txt   # 从2005年
+        │   ├── 2012_url_list.txt   # 
+        │   ├── 2015_url_list.txt   # 
+        │   ├── 2016_url_list.txt   # 
+        │   ├── 2017_url_list.txt   # 到
+        │   ├── 2018_url_list.txt   # 
+        │   ├── 2019_url_list.txt   # 
+        │   ├── 2020_url_list.txt   # 2021年的链接
+        │   ├── 2021_url_list.txt   #############
+        │   ├── log.txt             # 爬取运行日志
+        │   ├── noise_set.pkl       # 噪音字典
+        │   ├── ~html               # html缓存（开始不存在）
+        │   └── ~refined_text       # 提纯文本（开始不存在）
+        │       ├── *.txt     # 文书文本
+        │       └── json      # 标注文件夹
+        │
+        └── text_extract      # 从html中提取文字
+            ├── __init__.py
+            ├── gov.py        # 中华人民共和国最高人民法院公报（已废弃）
+            └── pkulaw.py     # 北大法宝
+```
 ## 2 使用方法
 
 ### 2.1 兼容性
