@@ -51,7 +51,7 @@
 
 ### 1.4 项目结构
 
-```python
+```zsh
 Final-Proj-of-DataScience2021
 ├── README.md                               # 本文件
 ├── docsets                                 # 文档集
